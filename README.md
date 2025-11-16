@@ -1,0 +1,2 @@
+# MarketDataFetchPackage
+这尝试通过codex写一个下载各个交易所市场数据的包
