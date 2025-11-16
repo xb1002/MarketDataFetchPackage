@@ -29,19 +29,16 @@ class USDTPerpKline:
 
     symbol: Symbol
     open_time: datetime
-    close_time: datetime
     open: Decimal
     high: Decimal
     low: Decimal
     close: Decimal
-    volume: Decimal  # base asset volume；部分指数可用 0 或 None 表示
-    quote_volume: Decimal
+    volume: Decimal  # base asset volume；部分指数可用 0 表示
 
 @dataclass(frozen=True)
 class USDTPerpFundingRatePoint:
-    timestamp: datetime
-    rate: Decimal
-    predicted_rate: Decimal | None
+    funding_time: datetime
+    funding_rate: Decimal
 
 @dataclass(frozen=True)
 class USDTPerpMarkPrice:
@@ -91,7 +88,7 @@ class USDTPerpMarketDataSource(Protocol):
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint: ...
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest: ...
 ```
-- 最新价格/指数/溢价指数均复用 `USDTPerpKline` 的单点表达（`open_time == close_time`）。
+- 最新价格/指数/溢价指数均复用 `USDTPerpKline` 的单点表达（`open_time` 代表该读数时间）。
 - 通过统一的 `USDTPerpKline`，避免三类 K 线重复字段定义。
 - `get_open_interest` 仅返回最新未平仓量；未来若需历史序列，可在协议中新增 `get_open_interest_history`，保持对现有实现向后兼容。
 

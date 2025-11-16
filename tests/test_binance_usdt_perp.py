@@ -40,7 +40,6 @@ def test_get_price_klines_live(source: BinanceUSDTPerpDataSource, symbol: Symbol
 
     assert len(klines) > 0
     assert all(k.symbol == symbol for k in klines)
-    assert all(k.close_time >= k.open_time for k in klines)
 
 
 @pytest.mark.network
@@ -83,7 +82,7 @@ def test_get_funding_rate_history_live(source: BinanceUSDTPerpDataSource, symbol
 
     assert len(points) > 0
     assert all(point.symbol == symbol for point in points)
-    assert all(isinstance(point.rate, Decimal) for point in points)
+    assert all(isinstance(point.funding_rate, Decimal) for point in points)
 
 
 @pytest.mark.network
@@ -130,7 +129,7 @@ def test_get_latest_funding_rate_point_live(source: BinanceUSDTPerpDataSource, s
     point = _call_or_skip(lambda: source.get_latest_funding_rate(symbol))
 
     assert point.symbol == symbol
-    assert isinstance(point.rate, Decimal)
+    assert isinstance(point.funding_rate, Decimal)
 
 
 @pytest.mark.network

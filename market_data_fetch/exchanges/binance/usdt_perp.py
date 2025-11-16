@@ -216,34 +216,22 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         high = Decimal(str(raw[2]))
         low = Decimal(str(raw[3]))
         close = Decimal(str(raw[4]))
-        if len(raw) >= 8:
-            volume_value = Decimal(str(raw[5]))
-            close_time = _from_milliseconds(raw[6])
-            quote_volume_value = Decimal(str(raw[7]))
-        else:
-            volume_value = Decimal("0")
-            close_time = _from_milliseconds(raw[-1])
-            quote_volume_value = Decimal("0")
+        volume_value = Decimal(str(raw[5])) if len(raw) > 5 else Decimal("0")
         return USDTPerpKline(
             symbol=symbol,
             open_time=open_time,
-            close_time=close_time,
             open=open_price,
             high=high,
             low=low,
             close=close,
             volume=volume_value,
-            quote_volume=quote_volume_value,
         )
 
     def _parse_funding_point(self, raw: dict[str, Any], symbol: Symbol) -> USDTPerpFundingRatePoint:
-        predicted_raw = raw.get("predictedFundingRate") or raw.get("estimatedSettlePrice")
-        predicted_rate = Decimal(predicted_raw) if predicted_raw is not None else None
         return USDTPerpFundingRatePoint(
             symbol=symbol,
-            timestamp=_from_milliseconds(raw["fundingTime"]),
-            rate=Decimal(raw["fundingRate"]),
-            predicted_rate=predicted_rate,
+            funding_time=_from_milliseconds(raw["fundingTime"]),
+            funding_rate=Decimal(raw["fundingRate"]),
         )
 
     def _extract_message(self, payload: Any) -> str | None:

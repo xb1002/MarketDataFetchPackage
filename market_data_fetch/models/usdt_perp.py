@@ -16,13 +16,11 @@ class USDTPerpKline:
 
     symbol: Symbol
     open_time: datetime
-    close_time: datetime
     open: Decimal
     high: Decimal
     low: Decimal
     close: Decimal
     volume: Decimal
-    quote_volume: Decimal
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the kline into a JSON-friendly dictionary."""
@@ -30,13 +28,11 @@ class USDTPerpKline:
         return {
             "symbol": self.symbol.pair,
             "open_time": self.open_time.isoformat(),
-            "close_time": self.close_time.isoformat(),
             "open": str(self.open),
             "high": str(self.high),
             "low": str(self.low),
             "close": str(self.close),
             "volume": str(self.volume),
-            "quote_volume": str(self.quote_volume),
         }
 
 
@@ -45,9 +41,8 @@ class USDTPerpFundingRatePoint:
     """Represents one historical or latest funding rate measurement."""
 
     symbol: Symbol
-    timestamp: datetime
-    rate: Decimal
-    predicted_rate: Decimal | None
+    funding_time: datetime
+    funding_rate: Decimal
 
 
 @dataclass(frozen=True, slots=True)
