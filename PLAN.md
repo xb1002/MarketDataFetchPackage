@@ -63,7 +63,7 @@ class HistoricalWindow:
     interval: Interval
     start_time: datetime | None = None
     end_time: datetime | None = None
-    limit: int | None = None  # 默认 500，最大 1500
+    limit: int | None = None  # 默认 500，由具体交易所/接口约束最大值
 ```
 - `HistoricalWindow` 由协调层在调用前执行校验（起止时间、limit）。
 - 对于资金费率历史，可另外定义 `FundingRateWindow`（仅 start/end/limit，无 interval）。

@@ -139,3 +139,23 @@ def test_get_open_interest_snapshot_live(source: BinanceUSDTPerpDataSource, symb
 
     assert snapshot.symbol == symbol
     assert isinstance(snapshot.value, Decimal)
+
+
+def test_price_kline_limit_validation(symbol: Symbol) -> None:
+    client = BinanceUSDTPerpDataSource(base_url=TESTNET_BASE_URL)
+    window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=2000)
+
+    with pytest.raises(ValueError):
+        client.get_price_klines(window)
+
+    client.close()
+
+
+def test_funding_limit_validation(symbol: Symbol) -> None:
+    client = BinanceUSDTPerpDataSource(base_url=TESTNET_BASE_URL)
+    window = FundingRateWindow(symbol=symbol, limit=1500)
+
+    with pytest.raises(ValueError):
+        client.get_funding_rate_history(window)
+
+    client.close()

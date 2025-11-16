@@ -8,7 +8,6 @@ from datetime import datetime
 from ..models.shared import Interval, Symbol
 
 DEFAULT_LIMIT = 500
-MAX_LIMIT = 1500
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,8 +23,6 @@ class HistoricalWindow:
     def __post_init__(self) -> None:
         if self.limit <= 0:
             raise ValueError("limit must be a positive integer")
-        if self.limit > MAX_LIMIT:
-            raise ValueError(f"limit cannot exceed {MAX_LIMIT}")
         if self.start_time and self.end_time and self.start_time >= self.end_time:
             raise ValueError("start_time must be earlier than end_time")
 
@@ -42,7 +39,5 @@ class FundingRateWindow:
     def __post_init__(self) -> None:
         if self.limit <= 0:
             raise ValueError("limit must be a positive integer")
-        if self.limit > MAX_LIMIT:
-            raise ValueError(f"limit cannot exceed {MAX_LIMIT}")
         if self.start_time and self.end_time and self.start_time >= self.end_time:
             raise ValueError("start_time must be earlier than end_time")

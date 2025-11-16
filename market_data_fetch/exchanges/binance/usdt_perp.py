@@ -36,6 +36,13 @@ PREMIUM_INDEX_ENDPOINT = "/fapi/v1/premiumIndex"
 TICKER_24H_ENDPOINT = "/fapi/v1/ticker/24hr"
 OPEN_INTEREST_ENDPOINT = "/fapi/v1/openInterest"
 DEFAULT_TIMEOUT = 10.0
+# Binance Futures REST API limits documented at
+# https://binance-docs.github.io/apidocs/futures/en/#change-log
+PRICE_KLINES_MAX_LIMIT = 1500
+INDEX_PRICE_KLINES_MAX_LIMIT = 1500
+MARK_PRICE_KLINES_MAX_LIMIT = 1500
+PREMIUM_INDEX_KLINES_MAX_LIMIT = 1500
+FUNDING_RATE_MAX_LIMIT = 1000
 
 
 class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
@@ -60,35 +67,60 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
     def get_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             PRICE_KLINES_ENDPOINT,
-            self._historical_params(query, key="symbol"),
+            self._historical_params(
+                query,
+                key="symbol",
+                max_limit=PRICE_KLINES_MAX_LIMIT,
+                endpoint_name="price klines",
+            ),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             INDEX_KLINES_ENDPOINT,
-            self._historical_params(query, key="pair"),
+            self._historical_params(
+                query,
+                key="pair",
+                max_limit=INDEX_PRICE_KLINES_MAX_LIMIT,
+                endpoint_name="index price klines",
+            ),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             PREMIUM_KLINES_ENDPOINT,
-            self._historical_params(query, key="symbol"),
+            self._historical_params(
+                query,
+                key="symbol",
+                max_limit=PREMIUM_INDEX_KLINES_MAX_LIMIT,
+                endpoint_name="premium index klines",
+            ),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             MARK_PRICE_KLINES_ENDPOINT,
-            self._historical_params(query, key="symbol"),
+            self._historical_params(
+                query,
+                key="symbol",
+                max_limit=MARK_PRICE_KLINES_MAX_LIMIT,
+                endpoint_name="mark price klines",
+            ),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
+        limit = self._enforce_limit(
+            query.limit,
+            FUNDING_RATE_MAX_LIMIT,
+            endpoint_name="funding rate history",
+        )
         params = {
             "symbol": query.symbol.pair,
-            "limit": query.limit,
+            "limit": limit,
         }
         if query.start_time:
             params["startTime"] = _to_milliseconds(query.start_time)
@@ -162,17 +194,32 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         if self._owns_session:
             self._session.close()
 
-    def _historical_params(self, query: HistoricalWindow, *, key: str) -> dict[str, Any]:
+    def _historical_params(
+        self,
+        query: HistoricalWindow,
+        *,
+        key: str,
+        max_limit: int,
+        endpoint_name: str,
+    ) -> dict[str, Any]:
+        limit = self._enforce_limit(query.limit, max_limit, endpoint_name=endpoint_name)
         params: dict[str, Any] = {
             key: query.symbol.pair,
             "interval": query.interval.value,
-            "limit": query.limit,
+            "limit": limit,
         }
         if query.start_time:
             params["startTime"] = _to_milliseconds(query.start_time)
         if query.end_time:
             params["endTime"] = _to_milliseconds(query.end_time)
         return params
+
+    def _enforce_limit(self, requested: int, max_limit: int, *, endpoint_name: str) -> int:
+        if requested > max_limit:
+            raise ValueError(
+                f"Binance {endpoint_name} limit cannot exceed {max_limit} entries"
+            )
+        return requested
 
     def _request(self, path: str, params: dict[str, Any]) -> Any:
         url = f"{self._base_url}{path}"
