@@ -24,7 +24,9 @@ class Symbol:
 ```python
 # market_data_fetch/models/usdt_perp.py
 @dataclass(frozen=True)
-class USDTPerpPriceKline:
+class USDTPerpKline:
+    """通用 K 线模型，供价格、价格指数、溢价指数三类数据共用。"""
+
     symbol: Symbol
     open_time: datetime
     close_time: datetime
@@ -32,17 +34,8 @@ class USDTPerpPriceKline:
     high: Decimal
     low: Decimal
     close: Decimal
-    volume: Decimal  # base asset volume
+    volume: Decimal  # base asset volume；部分指数可用 0 或 None 表示
     quote_volume: Decimal
-
-@dataclass(frozen=True)
-class USDTPerpIndexKline(USDTPerpPriceKline):
-    constituents: Mapping[str, Decimal] | None
-
-@dataclass(frozen=True)
-class USDTPerpPremiumIndexPoint:
-    timestamp: datetime
-    value: Decimal  # premium percentage
 
 @dataclass(frozen=True)
 class USDTPerpFundingRatePoint:
@@ -84,22 +77,22 @@ class USDTPerpMarketDataSource(Protocol):
     exchange: ClassVar[Exchange]
 
     # 历史序列
-    def get_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpPriceKline]: ...
-    def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpIndexKline]: ...
-    def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpPremiumIndexPoint]: ...
+    def get_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]: ...
+    def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]: ...
+    def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]: ...
     def get_funding_rate_history(
         self, query: FundingRateWindow
     ) -> Sequence[USDTPerpFundingRatePoint]: ...
 
     # 最新值
     def get_latest_price(self, symbol: Symbol) -> USDTPerpMarkPrice: ...
-    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexKline: ...
-    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint: ...
+    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline: ...
+    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline: ...
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint: ...
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest: ...
 ```
-- 最新指数价格可以复用 `USDTPerpIndexKline` 的单点表达（`open_time == close_time`）。
-- 对 premium index 最新值与历史值使用同一数据类，避免重复字段。
+- 最新价格/指数/溢价指数均复用 `USDTPerpKline` 的单点表达（`open_time == close_time`）。
+- 通过统一的 `USDTPerpKline`，避免三类 K 线重复字段定义。
 - `get_open_interest` 仅返回最新未平仓量；未来若需历史序列，可在协议中新增 `get_open_interest_history`，保持对现有实现向后兼容。
 
 ## 错误处理契约
