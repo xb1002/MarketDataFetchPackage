@@ -15,7 +15,8 @@ symbol = Symbol("BTC", "USDT")
 window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=200)
 
 klines = client.get_price_klines(Exchange.BINANCE, window)
-latest = client.get_latest_price(Exchange.BINANCE, symbol)
+latest_price = client.get_latest_price(Exchange.BINANCE, symbol)  # 成交价
+mark_price = client.get_latest_mark_price(Exchange.BINANCE, symbol)  # 标记价格
 ```
 
-示例中演示了如何下载历史 K 线以及获取最新的 Mark Price。其他如指数 K 线、溢价指数、资金费率历史与未平仓量均通过同一个 `MarketDataClient` 入口暴露。
+示例中演示了如何下载历史 K 线以及分别获取最新成交价与最新 Mark Price。其他如指数 K 线、标记价格 K 线、溢价指数、资金费率历史与未平仓量均通过同一个 `MarketDataClient` 入口暴露。

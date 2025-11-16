@@ -11,6 +11,7 @@ from ...models.usdt_perp import (
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPriceTicker,
 )
 
 
@@ -27,6 +28,9 @@ class USDTPerpMarketDataSource(Protocol):
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         """Return index price klines sharing the same schema as price klines."""
 
+    def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
+        """Return mark price klines using the generic OHLCV schema."""
+
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         """Return premium index klines."""
 
@@ -34,7 +38,10 @@ class USDTPerpMarketDataSource(Protocol):
         """Return historical funding rate points for the requested symbol."""
 
     # Latest snapshots --------------------------------------------------
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+        """Return the latest traded price snapshot."""
+
+    def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         """Return the latest mark price snapshot containing price and funding details."""
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline:

@@ -68,3 +68,21 @@ class USDTPerpOpenInterest:
     symbol: Symbol
     timestamp: datetime
     value: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class USDTPerpPriceTicker:
+    """Latest traded price along with the exchange timestamp."""
+
+    symbol: Symbol
+    price: Decimal
+    timestamp: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the ticker for downstream consumers."""
+
+        return {
+            "symbol": self.symbol.pair,
+            "price": str(self.price),
+            "timestamp": self.timestamp.isoformat(),
+        }

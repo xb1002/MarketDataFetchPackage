@@ -23,14 +23,17 @@ from ...models.usdt_perp import (
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPriceTicker,
 )
 
 BASE_URL = "https://fapi.binance.com"
 PRICE_KLINES_ENDPOINT = "/fapi/v1/klines"
 INDEX_KLINES_ENDPOINT = "/fapi/v1/indexPriceKlines"
+MARK_PRICE_KLINES_ENDPOINT = "/fapi/v1/markPriceKlines"
 PREMIUM_KLINES_ENDPOINT = "/fapi/v1/premiumIndexKlines"
 FUNDING_HISTORY_ENDPOINT = "/fapi/v1/fundingRate"
 PREMIUM_INDEX_ENDPOINT = "/fapi/v1/premiumIndex"
+TICKER_24H_ENDPOINT = "/fapi/v1/ticker/24hr"
 OPEN_INTEREST_ENDPOINT = "/fapi/v1/openInterest"
 DEFAULT_TIMEOUT = 10.0
 
@@ -75,6 +78,13 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
+    def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
+        payload = self._request(
+            MARK_PRICE_KLINES_ENDPOINT,
+            self._historical_params(query, key="symbol"),
+        )
+        return [self._parse_kline(query.symbol, raw) for raw in payload]
+
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         params = {
             "symbol": query.symbol.pair,
@@ -89,7 +99,15 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+        payload = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
+        return USDTPerpPriceTicker(
+            symbol=symbol,
+            price=Decimal(payload["lastPrice"]),
+            timestamp=_from_milliseconds(payload["closeTime"]),
+        )
+
+    def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         payload = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
         return USDTPerpMarkPrice(
             symbol=symbol,

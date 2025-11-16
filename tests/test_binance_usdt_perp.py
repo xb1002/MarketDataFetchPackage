@@ -55,6 +55,16 @@ def test_get_index_price_klines_live(source: BinanceUSDTPerpDataSource, symbol: 
 
 @pytest.mark.network
 @pytest.mark.integration
+def test_get_mark_price_klines_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
+    window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=3)
+    klines = _call_or_skip(lambda: source.get_mark_price_klines(window))
+
+    assert len(klines) > 0
+    assert all(k.symbol == symbol for k in klines)
+
+
+@pytest.mark.network
+@pytest.mark.integration
 def test_get_premium_index_klines_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
     window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=3)
     klines = _call_or_skip(lambda: source.get_premium_index_klines(window))
@@ -78,8 +88,18 @@ def test_get_funding_rate_history_live(source: BinanceUSDTPerpDataSource, symbol
 
 @pytest.mark.network
 @pytest.mark.integration
-def test_get_latest_price_snapshot_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
+def test_get_latest_price_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
     snapshot = _call_or_skip(lambda: source.get_latest_price(symbol))
+
+    assert snapshot.symbol == symbol
+    assert isinstance(snapshot.price, Decimal)
+    assert snapshot.timestamp.tzinfo == timezone.utc
+
+
+@pytest.mark.network
+@pytest.mark.integration
+def test_get_latest_mark_price_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
+    snapshot = _call_or_skip(lambda: source.get_latest_mark_price(symbol))
 
     assert snapshot.symbol == symbol
     assert isinstance(snapshot.price, Decimal)

@@ -11,6 +11,7 @@ from ..models.usdt_perp import (
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPriceTicker,
 )
 from .queries import FundingRateWindow, HistoricalWindow
 from .registry import create_usdt_perp_source
@@ -43,6 +44,11 @@ class MarketDataClient:
 
         return self._get_source(exchange).get_index_price_klines(query)
 
+    def get_mark_price_klines(self, exchange: Exchange, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
+        """Route to the registered mark price kline provider."""
+
+        return self._get_source(exchange).get_mark_price_klines(query)
+
     def get_premium_index_klines(self, exchange: Exchange, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         """Route to the registered premium index kline provider."""
 
@@ -54,10 +60,15 @@ class MarketDataClient:
         return self._get_source(exchange).get_funding_rate_history(query)
 
     # Latest ------------------------------------------------------------
-    def get_latest_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpMarkPrice:
-        """Return the latest mark price snapshot from the underlying source."""
+    def get_latest_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpPriceTicker:
+        """Return the latest traded price snapshot from the underlying source."""
 
         return self._get_source(exchange).get_latest_price(symbol)
+
+    def get_latest_mark_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpMarkPrice:
+        """Return the latest mark price snapshot from the underlying source."""
+
+        return self._get_source(exchange).get_latest_mark_price(symbol)
 
     def get_latest_index_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpKline:
         """Return the latest index price as a single kline entry."""
