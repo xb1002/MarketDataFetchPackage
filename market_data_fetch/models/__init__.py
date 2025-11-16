@@ -6,6 +6,7 @@ from .usdt_perp import (
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPriceTicker,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "USDTPerpKline",
     "USDTPerpMarkPrice",
     "USDTPerpOpenInterest",
+    "USDTPerpPriceTicker",
 ]

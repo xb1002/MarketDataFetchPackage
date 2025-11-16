@@ -1,83 +1,24 @@
-"""Data models specific to USDT-margined perpetual contracts."""
+"""Tuple-based data contracts specific to USDT-margined perpetual markets."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import TypeAlias
 
-from .shared import Symbol
+# The tuple layouts intentionally avoid dataclasses to minimize memory overhead
+# when processing very large payloads (millions of rows) before persisting them.
 
+# ``(open_time_ms, open, high, low, close, volume)``
+USDTPerpKline: TypeAlias = tuple[int, Decimal, Decimal, Decimal, Decimal, Decimal]
 
-@dataclass(frozen=True, slots=True)
-class USDTPerpKline:
-    """Generic OHLCV representation shared by price, index price, and premium feeds."""
+# ``(funding_time_ms, funding_rate)``
+USDTPerpFundingRatePoint: TypeAlias = tuple[int, Decimal]
 
-    symbol: Symbol
-    open_time: datetime
-    open: Decimal
-    high: Decimal
-    low: Decimal
-    close: Decimal
-    volume: Decimal
+# ``(mark_price, index_price, last_funding_rate, next_funding_time_ms)``
+USDTPerpMarkPrice: TypeAlias = tuple[Decimal, Decimal, Decimal, int]
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize the kline into a JSON-friendly dictionary."""
+# ``(timestamp_ms, open_interest_value)``
+USDTPerpOpenInterest: TypeAlias = tuple[int, Decimal]
 
-        return {
-            "symbol": self.symbol.pair,
-            "open_time": self.open_time.isoformat(),
-            "open": str(self.open),
-            "high": str(self.high),
-            "low": str(self.low),
-            "close": str(self.close),
-            "volume": str(self.volume),
-        }
-
-
-@dataclass(frozen=True, slots=True)
-class USDTPerpFundingRatePoint:
-    """Represents one historical or latest funding rate measurement."""
-
-    symbol: Symbol
-    funding_time: datetime
-    funding_rate: Decimal
-
-
-@dataclass(frozen=True, slots=True)
-class USDTPerpMarkPrice:
-    """Snapshot of mark/index price and associated funding metadata."""
-
-    symbol: Symbol
-    price: Decimal
-    index_price: Decimal
-    last_funding_rate: Decimal
-    next_funding_time: datetime
-
-
-@dataclass(frozen=True, slots=True)
-class USDTPerpOpenInterest:
-    """Latest open interest value for a perpetual contract."""
-
-    symbol: Symbol
-    timestamp: datetime
-    value: Decimal
-
-
-@dataclass(frozen=True, slots=True)
-class USDTPerpPriceTicker:
-    """Latest traded price along with the exchange timestamp."""
-
-    symbol: Symbol
-    price: Decimal
-    timestamp: datetime
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize the ticker for downstream consumers."""
-
-        return {
-            "symbol": self.symbol.pair,
-            "price": str(self.price),
-            "timestamp": self.timestamp.isoformat(),
-        }
+# ``(last_price, timestamp_ms)``
+USDTPerpPriceTicker: TypeAlias = tuple[Decimal, int]

@@ -74,7 +74,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="price klines",
             ),
         )
-        return [self._parse_kline(query.symbol, raw) for raw in payload]
+        return [self._parse_kline(raw) for raw in payload]
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
@@ -86,7 +86,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="index price klines",
             ),
         )
-        return [self._parse_kline(query.symbol, raw) for raw in payload]
+        return [self._parse_kline(raw) for raw in payload]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
@@ -98,7 +98,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="premium index klines",
             ),
         )
-        return [self._parse_kline(query.symbol, raw) for raw in payload]
+        return [self._parse_kline(raw) for raw in payload]
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
@@ -110,7 +110,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="mark price klines",
             ),
         )
-        return [self._parse_kline(query.symbol, raw) for raw in payload]
+        return [self._parse_kline(raw) for raw in payload]
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         limit = self._enforce_limit(
@@ -127,26 +127,21 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         if query.end_time:
             params["endTime"] = _to_milliseconds(query.end_time)
         payload = self._request(FUNDING_HISTORY_ENDPOINT, params)
-        return [self._parse_funding_point(entry, query.symbol) for entry in payload]
+        return [self._parse_funding_point(entry) for entry in payload]
 
     # ------------------------------------------------------------------
     # Latest snapshots
     def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
         payload = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
-        return USDTPerpPriceTicker(
-            symbol=symbol,
-            price=Decimal(payload["lastPrice"]),
-            timestamp=_from_milliseconds(payload["closeTime"]),
-        )
+        return (Decimal(payload["lastPrice"]), int(payload["closeTime"]))
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         payload = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
-        return USDTPerpMarkPrice(
-            symbol=symbol,
-            price=Decimal(payload["markPrice"]),
-            index_price=Decimal(payload["indexPrice"]),
-            last_funding_rate=Decimal(payload["lastFundingRate"]),
-            next_funding_time=_from_milliseconds(payload["nextFundingTime"]),
+        return (
+            Decimal(payload["markPrice"]),
+            Decimal(payload["indexPrice"]),
+            Decimal(payload["lastFundingRate"]),
+            int(payload["nextFundingTime"]),
         )
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline:
@@ -158,7 +153,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         payload = self._request(INDEX_KLINES_ENDPOINT, params)
         if not payload:
             raise MarketDataError("Binance returned empty index kline payload")
-        return self._parse_kline(symbol, payload[0])
+        return self._parse_kline(payload[0])
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline:
         params = {
@@ -169,7 +164,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         payload = self._request(PREMIUM_KLINES_ENDPOINT, params)
         if not payload:
             raise MarketDataError("Binance returned empty premium index payload")
-        return self._parse_kline(symbol, payload[0])
+        return self._parse_kline(payload[0])
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         payload = self._request(
@@ -178,15 +173,11 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         )
         if not payload:
             raise MarketDataError("Binance returned empty funding rate payload")
-        return self._parse_funding_point(payload[0], symbol)
+        return self._parse_funding_point(payload[0])
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         payload = self._request(OPEN_INTEREST_ENDPOINT, {"symbol": symbol.pair})
-        return USDTPerpOpenInterest(
-            symbol=symbol,
-            timestamp=_from_milliseconds(payload["time"]),
-            value=Decimal(payload["openInterest"]),
-        )
+        return (int(payload["time"]), Decimal(payload["openInterest"]))
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -255,31 +246,19 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
             raise IntervalNotSupportedError(msg)
         raise MarketDataError(msg)
 
-    def _parse_kline(self, symbol: Symbol, raw: Sequence[Any]) -> USDTPerpKline:
+    def _parse_kline(self, raw: Sequence[Any]) -> USDTPerpKline:
         if len(raw) < 6:
             raise MarketDataError("Unexpected Binance kline payload structure")
-        open_time = _from_milliseconds(raw[0])
+        open_time = int(raw[0])
         open_price = Decimal(str(raw[1]))
         high = Decimal(str(raw[2]))
         low = Decimal(str(raw[3]))
         close = Decimal(str(raw[4]))
         volume_value = Decimal(str(raw[5])) if len(raw) > 5 else Decimal("0")
-        return USDTPerpKline(
-            symbol=symbol,
-            open_time=open_time,
-            open=open_price,
-            high=high,
-            low=low,
-            close=close,
-            volume=volume_value,
-        )
+        return (open_time, open_price, high, low, close, volume_value)
 
-    def _parse_funding_point(self, raw: dict[str, Any], symbol: Symbol) -> USDTPerpFundingRatePoint:
-        return USDTPerpFundingRatePoint(
-            symbol=symbol,
-            funding_time=_from_milliseconds(raw["fundingTime"]),
-            funding_rate=Decimal(raw["fundingRate"]),
-        )
+    def _parse_funding_point(self, raw: dict[str, Any]) -> USDTPerpFundingRatePoint:
+        return (int(raw["fundingTime"]), Decimal(raw["fundingRate"]))
 
     def _extract_message(self, payload: Any) -> str | None:
         if isinstance(payload, dict):
@@ -293,10 +272,6 @@ def _to_milliseconds(value: datetime) -> int:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return int(value.timestamp() * 1000)
-
-
-def _from_milliseconds(value: int | float | str) -> datetime:
-    return datetime.fromtimestamp(float(value) / 1000, tz=timezone.utc)
 
 
 def register(*, replace: bool = False) -> None:

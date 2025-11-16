@@ -6,7 +6,7 @@
 ## 接口组织设计
 - **包结构**：
   - `market_data_fetch/contracts/usdt_perp/interface.py`：定义 `USDTPerpMarketDataSource` 协议，面向历史/最新行情读取能力。
-  - `market_data_fetch/models/usdt_perp.py`：承载所有返回数据模型（K 线、指数、资金费率、未平仓量等）。
+  - `market_data_fetch/models/usdt_perp.py`：以轻量 tuple（避免 dataclass 开销）描述所有返回数据模型（K 线、指数、资金费率、未平仓量等）。
   - `market_data_fetch/models/shared.py`：时间粒度、交易对、分页游标等基础类型，未来币本位/杠杆可复用。
   - `market_data_fetch/core/queries.py`：封装查询参数对象，支持 start/end/limit 组合校验。
   - `market_data_fetch/exchanges/<exchange>/usdt_perp.py`：交易所实现；仅依赖接口与模型，确保扩展性。
@@ -23,36 +23,12 @@ class Symbol:
 ```
 ```python
 # market_data_fetch/models/usdt_perp.py
-@dataclass(frozen=True)
-class USDTPerpKline:
-    """通用 K 线模型，供价格、价格指数、溢价指数三类数据共用。"""
-
-    symbol: Symbol
-    open_time: datetime
-    open: Decimal
-    high: Decimal
-    low: Decimal
-    close: Decimal
-    volume: Decimal  # base asset volume；部分指数可用 0 表示
-
-@dataclass(frozen=True)
-class USDTPerpFundingRatePoint:
-    funding_time: datetime
-    funding_rate: Decimal
-
-@dataclass(frozen=True)
-class USDTPerpMarkPrice:
-    symbol: Symbol
-    price: Decimal
-    index_price: Decimal
-    last_funding_rate: Decimal
-    next_funding_time: datetime
-
-@dataclass(frozen=True)
-class USDTPerpOpenInterest:
-    symbol: Symbol
-    timestamp: datetime
-    value: Decimal  # contracts or USD value
+# Tuple 布局全部以毫秒时间戳+ Decimal 描述，避免 dataclass 带来的额外开销。
+USDTPerpKline = tuple[int, Decimal, Decimal, Decimal, Decimal, Decimal]
+USDTPerpFundingRatePoint = tuple[int, Decimal]
+USDTPerpMarkPrice = tuple[Decimal, Decimal, Decimal, int]
+USDTPerpOpenInterest = tuple[int, Decimal]
+USDTPerpPriceTicker = tuple[Decimal, int]
 ```
 
 ## 查询对象
@@ -82,13 +58,13 @@ class USDTPerpMarketDataSource(Protocol):
     ) -> Sequence[USDTPerpFundingRatePoint]: ...
 
     # 最新值
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpMarkPrice: ...
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker: ...
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline: ...
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline: ...
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint: ...
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest: ...
 ```
-- 最新价格/指数/溢价指数均复用 `USDTPerpKline` 的单点表达（`open_time` 代表该读数时间）。
+- 最新价格/指数/溢价指数均复用轻量 tuple 表达，K 线中的第一项时间戳即该读数时间。
 - 通过统一的 `USDTPerpKline`，避免三类 K 线重复字段定义。
 - `get_open_interest` 仅返回最新未平仓量；未来若需历史序列，可在协议中新增 `get_open_interest_history`，保持对现有实现向后兼容。
 
@@ -101,7 +77,7 @@ class USDTPerpMarketDataSource(Protocol):
 
 ## 实施计划
 1. **搭建包骨架**：创建 `market_data_fetch/` 目录及上述子模块；在 `__init__.py` 中导出关键协议和模型，方便外部引用。
-2. **定义基础类型与模型**：在 `models/shared.py`、`models/usdt_perp.py` 和 `core/queries.py` 中实现 dataclass/Enum，并添加字段校验与 docstring。
+2. **定义基础类型与模型**：在 `models/shared.py`、`models/usdt_perp.py` 和 `core/queries.py` 中实现 Enum/tuple type alias，并添加字段/顺序说明文档。
 3. **实现接口协议**：在 `contracts/usdt_perp/interface.py` 中定义 `USDTPerpMarketDataSource`、相关异常类型注释，以及方法 docstring（说明参数、返回值、错误）。
 4. **注册与发现机制**：实现 `core/registry.py`，允许通过 `register_usdt_perp_source(exchange, cls)` 注册；协调层通过 `get_usdt_perp_source(exchange)` 实例化。
 5. **示例交易所实现**：以 Binance 为首个数据源，实现 `BinanceUSDTPerpFetcher`，覆盖全部接口方法并写单测，确保协议可行。
