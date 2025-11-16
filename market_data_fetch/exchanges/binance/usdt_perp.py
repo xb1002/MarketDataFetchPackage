@@ -57,21 +57,21 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
     def get_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             PRICE_KLINES_ENDPOINT,
-            self._historical_params(query, use_pair=False),
+            self._historical_params(query, key="symbol"),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             INDEX_KLINES_ENDPOINT,
-            self._historical_params(query, use_pair=True),
+            self._historical_params(query, key="pair"),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
             PREMIUM_KLINES_ENDPOINT,
-            self._historical_params(query, use_pair=True),
+            self._historical_params(query, key="symbol"),
         )
         return [self._parse_kline(query.symbol, raw) for raw in payload]
 
@@ -112,7 +112,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline:
         params = {
-            "pair": symbol.pair,
+            "symbol": symbol.pair,
             "interval": Interval.MINUTE_1.value,
             "limit": 1,
         }
@@ -144,8 +144,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         if self._owns_session:
             self._session.close()
 
-    def _historical_params(self, query: HistoricalWindow, *, use_pair: bool) -> dict[str, Any]:
-        key = "pair" if use_pair else "symbol"
+    def _historical_params(self, query: HistoricalWindow, *, key: str) -> dict[str, Any]:
         params: dict[str, Any] = {
             key: query.symbol.pair,
             "interval": query.interval.value,
