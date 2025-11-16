@@ -12,9 +12,11 @@ from .core.registry import create_usdt_perp_source, register_usdt_perp_source
 from .models.shared import Exchange, Interval, Symbol
 from .models.usdt_perp import (
     USDTPerpFundingRatePoint,
+    USDTPerpIndexPricePoint,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPremiumIndexPoint,
     USDTPerpPriceTicker,
 )
 
@@ -27,9 +29,11 @@ __all__ = [
     "Interval",
     "Symbol",
     "USDTPerpFundingRatePoint",
+    "USDTPerpIndexPricePoint",
     "USDTPerpKline",
     "USDTPerpMarkPrice",
     "USDTPerpOpenInterest",
+    "USDTPerpPremiumIndexPoint",
     "USDTPerpPriceTicker",
     "register_usdt_perp_source",
     "create_usdt_perp_source",

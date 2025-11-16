@@ -8,9 +8,11 @@ from ..contracts.usdt_perp.interface import USDTPerpMarketDataSource
 from ..models.shared import Exchange, Symbol
 from ..models.usdt_perp import (
     USDTPerpFundingRatePoint,
+    USDTPerpIndexPricePoint,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPremiumIndexPoint,
     USDTPerpPriceTicker,
 )
 from .queries import FundingRateWindow, HistoricalWindow
@@ -70,13 +72,15 @@ class MarketDataClient:
 
         return self._get_source(exchange).get_latest_mark_price(symbol)
 
-    def get_latest_index_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpKline:
-        """Return the latest index price as a single kline entry."""
+    def get_latest_index_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpIndexPricePoint:
+        """Return the latest index price snapshot."""
 
         return self._get_source(exchange).get_latest_index_price(symbol)
 
-    def get_latest_premium_index(self, exchange: Exchange, symbol: Symbol) -> USDTPerpKline:
-        """Return the latest premium index as a single kline entry."""
+    def get_latest_premium_index(
+        self, exchange: Exchange, symbol: Symbol
+    ) -> USDTPerpPremiumIndexPoint:
+        """Return the latest premium index snapshot."""
 
         return self._get_source(exchange).get_latest_premium_index(symbol)
 

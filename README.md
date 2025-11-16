@@ -23,6 +23,8 @@ open_time_ms, open_price, *_ = klines[0]
 
 # 其他返回结构：
 # - Funding 历史/最新值: (funding_time_ms, funding_rate)
+# - Index price 最新值: (index_price, timestamp_ms)
+# - Premium index 最新值: (premium_index_value, timestamp_ms)
 # - Mark price 快照: (mark_price, index_price, last_funding_rate, next_funding_time_ms)
 # - Open interest: (timestamp_ms, value)
 ```

@@ -22,3 +22,9 @@ USDTPerpOpenInterest: TypeAlias = tuple[int, Decimal]
 
 # ``(last_price, timestamp_ms)``
 USDTPerpPriceTicker: TypeAlias = tuple[Decimal, int]
+
+# ``(index_price, timestamp_ms)``
+USDTPerpIndexPricePoint: TypeAlias = tuple[Decimal, int]
+
+# ``(premium_index_value, timestamp_ms)``
+USDTPerpPremiumIndexPoint: TypeAlias = tuple[Decimal, int]

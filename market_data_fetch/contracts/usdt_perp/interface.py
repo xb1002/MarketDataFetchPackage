@@ -8,9 +8,11 @@ from ...core.queries import FundingRateWindow, HistoricalWindow
 from ...models.shared import Exchange, Symbol
 from ...models.usdt_perp import (
     USDTPerpFundingRatePoint,
+    USDTPerpIndexPricePoint,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPremiumIndexPoint,
     USDTPerpPriceTicker,
 )
 
@@ -44,11 +46,11 @@ class USDTPerpMarketDataSource(Protocol):
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         """Return the latest mark price snapshot containing price and funding details."""
 
-    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline:
-        """Return the latest index price encapsulated in the generic kline structure."""
+    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
+        """Return the latest index price value plus timestamp."""
 
-    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline:
-        """Return the latest premium index encapsulated in the generic kline structure."""
+    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
+        """Return the latest premium index value plus timestamp."""
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         """Return the latest funding rate measurement."""

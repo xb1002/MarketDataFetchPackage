@@ -29,6 +29,8 @@ USDTPerpFundingRatePoint = tuple[int, Decimal]
 USDTPerpMarkPrice = tuple[Decimal, Decimal, Decimal, int]
 USDTPerpOpenInterest = tuple[int, Decimal]
 USDTPerpPriceTicker = tuple[Decimal, int]
+USDTPerpIndexPricePoint = tuple[Decimal, int]
+USDTPerpPremiumIndexPoint = tuple[Decimal, int]
 ```
 
 ## 查询对象
@@ -59,12 +61,12 @@ class USDTPerpMarketDataSource(Protocol):
 
     # 最新值
     def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker: ...
-    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline: ...
-    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline: ...
+    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint: ...
+    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint: ...
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint: ...
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest: ...
 ```
-- 最新价格/指数/溢价指数均复用轻量 tuple 表达，K 线中的第一项时间戳即该读数时间。
+- 最新价格/指数/溢价指数均复用轻量 tuple 表达，指数类仅包含“数值+时间戳”而非 K 线结构。
 - 通过统一的 `USDTPerpKline`，避免三类 K 线重复字段定义。
 - `get_open_interest` 仅返回最新未平仓量；未来若需历史序列，可在协议中新增 `get_open_interest_history`，保持对现有实现向后兼容。
 

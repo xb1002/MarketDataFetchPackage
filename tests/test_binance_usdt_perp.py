@@ -114,17 +114,19 @@ def test_get_latest_mark_price_live(source: BinanceUSDTPerpDataSource, symbol: S
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_index_price_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
-    kline = _call_or_skip(lambda: source.get_latest_index_price(symbol))
+    value, ts = _call_or_skip(lambda: source.get_latest_index_price(symbol))
 
-    assert isinstance(kline[4], Decimal)
+    assert isinstance(value, Decimal)
+    assert isinstance(ts, int)
 
 
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_premium_index_live(source: BinanceUSDTPerpDataSource, symbol: Symbol) -> None:
-    kline = _call_or_skip(lambda: source.get_latest_premium_index(symbol))
+    value, ts = _call_or_skip(lambda: source.get_latest_premium_index(symbol))
 
-    assert isinstance(kline[4], Decimal)
+    assert isinstance(value, Decimal)
+    assert isinstance(ts, int)
 
 
 @pytest.mark.network

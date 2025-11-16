@@ -20,9 +20,11 @@ from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
     USDTPerpFundingRatePoint,
+    USDTPerpIndexPricePoint,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
+    USDTPerpPremiumIndexPoint,
     USDTPerpPriceTicker,
 )
 
@@ -144,7 +146,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
             int(payload["nextFundingTime"]),
         )
 
-    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpKline:
+    def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         params = {
             "pair": symbol.pair,
             "interval": Interval.MINUTE_1.value,
@@ -153,9 +155,9 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         payload = self._request(INDEX_KLINES_ENDPOINT, params)
         if not payload:
             raise MarketDataError("Binance returned empty index kline payload")
-        return self._parse_kline(payload[0])
+        return self._parse_snapshot_from_kline(payload[0], endpoint_name="index price")
 
-    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpKline:
+    def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
         params = {
             "symbol": symbol.pair,
             "interval": Interval.MINUTE_1.value,
@@ -164,7 +166,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         payload = self._request(PREMIUM_KLINES_ENDPOINT, params)
         if not payload:
             raise MarketDataError("Binance returned empty premium index payload")
-        return self._parse_kline(payload[0])
+        return self._parse_snapshot_from_kline(payload[0], endpoint_name="premium index")
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         payload = self._request(
@@ -259,6 +261,17 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def _parse_funding_point(self, raw: dict[str, Any]) -> USDTPerpFundingRatePoint:
         return (int(raw["fundingTime"]), Decimal(raw["fundingRate"]))
+
+    def _parse_snapshot_from_kline(
+        self, raw: Sequence[Any], *, endpoint_name: str
+    ) -> tuple[Decimal, int]:
+        if len(raw) < 5:
+            raise MarketDataError(
+                f"Unexpected Binance {endpoint_name} kline payload structure"
+            )
+        close_price = Decimal(str(raw[4]))
+        timestamp = int(raw[6]) if len(raw) > 6 else int(raw[0])
+        return (close_price, timestamp)
 
     def _extract_message(self, payload: Any) -> str | None:
         if isinstance(payload, dict):
