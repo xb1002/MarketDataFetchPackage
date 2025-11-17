@@ -173,7 +173,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (timestamp, close)
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
-        entry = self._fetch_latest_funding(symbol)
+        entry = self._fetch_recent_funding(symbol)
         timestamp = int(entry.get("fundingTime") or entry.get("ts") or 0)
         rate = self._to_decimal(entry.get("fundingRate"))
         return (timestamp, rate)
@@ -184,7 +184,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         entries = self._extract_sequence(payload, endpoint_name="open interest")
         entry = entries[0]
         timestamp = int(entry.get("ts") or 0)
-        value = self._to_decimal(entry.get("oi"))
+        value = self._to_decimal(entry.get("oiUsd") or entry.get("oi"))
         return (timestamp, value)
 
     def get_instruments(self) -> Sequence[USDTPerpInstrument]:
@@ -241,13 +241,21 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         params = {"instType": "SWAP", "instId": self._contract_inst_id(symbol)}
         payload = self._request(TICKERS_ENDPOINT, params)
         entries = self._extract_sequence(payload, endpoint_name="tickers")
-        return entries[0]
+        inst_id = self._contract_inst_id(symbol)
+        match = next((item for item in entries if item.get("instId") == inst_id), None)
+        if not match:
+            raise MarketDataError(f"OKX ticker payload missing {inst_id}")
+        return match
 
     def _fetch_index_ticker(self, symbol: Symbol) -> dict[str, Any]:
         params = {"instId": self._index_inst_id(symbol)}
         payload = self._request(INDEX_TICKERS_ENDPOINT, params)
         entries = self._extract_sequence(payload, endpoint_name="index tickers")
-        return entries[0]
+        inst_id = self._index_inst_id(symbol)
+        match = next((item for item in entries if item.get("instId") == inst_id), None)
+        if not match:
+            raise MarketDataError(f"OKX index ticker payload missing {inst_id}")
+        return match
 
     def _fetch_mark_snapshot(self, symbol: Symbol) -> dict[str, Any]:
         params = {"instType": "SWAP", "uly": self._underlying(symbol)}
@@ -262,6 +270,15 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         entries = self._extract_sequence(payload, endpoint_name="latest funding rate")
         return entries[0]
 
+    def _fetch_recent_funding(self, symbol: Symbol) -> dict[str, Any]:
+        window = FundingRateWindow(symbol=symbol, limit=1)
+        params = {"instId": self._contract_inst_id(window.symbol)}
+        limit = self._enforce_limit(window.limit, FUNDING_HISTORY_MAX_LIMIT, endpoint_name="funding rate history")
+        params["limit"] = str(limit)
+        payload = self._request(FUNDING_HISTORY_ENDPOINT, params)
+        entries = self._extract_sequence(payload, endpoint_name="funding rate history")
+        return entries[0]
+
     def _parse_kline(self, raw: Sequence[Any], *, zero_volume: bool = False) -> USDTPerpKline:
         if len(raw) < 5:
             raise MarketDataError("Unexpected OKX kline payload structure")
@@ -270,7 +287,12 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         high = self._to_decimal(raw[2])
         low = self._to_decimal(raw[3])
         close = self._to_decimal(raw[4])
-        volume_source = Decimal("0") if zero_volume else self._to_decimal(raw[5] if len(raw) > 5 else "0")
+        if zero_volume:
+            volume_source = Decimal("0")
+        elif len(raw) > 6 and raw[6] not in (None, ""):
+            volume_source = self._to_decimal(raw[6])
+        else:
+            volume_source = self._to_decimal(raw[5] if len(raw) > 5 else "0")
         return (timestamp, open_price, high, low, close, volume_source)
 
     def _build_flat_kline(self, raw: dict[str, Any]) -> USDTPerpKline:
