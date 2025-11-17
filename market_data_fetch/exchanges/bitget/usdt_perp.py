@@ -104,13 +104,13 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         entries = self._fetch_kline_series(
             query, endpoint_name="index price klines", kline_type=KLINE_TYPE_INDEX
         )
-        return [self._parse_kline(row) for row in entries]
+        return [self._parse_kline(row, zero_volume=True) for row in entries]
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         entries = self._fetch_kline_series(
             query, endpoint_name="mark price klines", kline_type=KLINE_TYPE_MARK
         )
-        return [self._parse_kline(row) for row in entries]
+        return [self._parse_kline(row, zero_volume=True) for row in entries]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         entries = self._fetch_kline_series(
@@ -118,7 +118,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             endpoint_name="premium index klines",
             kline_type=KLINE_TYPE_PREMIUM,
         )
-        return [self._parse_kline(row) for row in entries]
+        return [self._parse_kline(row, zero_volume=True) for row in entries]
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         params = self._funding_params(query)
@@ -303,7 +303,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             raise ValueError(f"Bitget {endpoint_name} limit cannot exceed {max_limit} entries")
         return requested
 
-    def _parse_kline(self, raw: Sequence[Any]) -> USDTPerpKline:
+    def _parse_kline(self, raw: Sequence[Any], *, zero_volume: bool = False) -> USDTPerpKline:
         if len(raw) < 6:
             raise MarketDataError("Unexpected Bitget kline payload structure")
         open_time = int(raw[0])
@@ -311,7 +311,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         high = self._to_decimal(raw[2])
         low = self._to_decimal(raw[3])
         close = self._to_decimal(raw[4])
-        volume = self._to_decimal(raw[5])
+        volume = Decimal("0") if zero_volume else self._to_decimal(raw[5])
         return (open_time, open_price, high, low, close, volume)
 
     def _parse_snapshot_from_kline(

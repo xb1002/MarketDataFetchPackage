@@ -164,6 +164,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
             symbol,
             key="symbol",
             endpoint_name="premium index",
+            only_closed=False,
         )
         return self._parse_snapshot_from_kline(raw, endpoint_name="premium index")
 
@@ -295,6 +296,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         *,
         key: str,
         endpoint_name: str,
+        only_closed: bool = True,
     ) -> Sequence[Any]:
         params = {
             key: symbol.pair,
@@ -307,7 +309,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         candidate = payload[-1]
         close_time = self._extract_close_time(candidate)
         now = int(time.time() * 1000)
-        if close_time > now and len(payload) > 1:
+        if only_closed and close_time > now and len(payload) > 1:
             candidate = payload[-2]
         return candidate
 
