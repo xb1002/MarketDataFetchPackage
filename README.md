@@ -49,3 +49,21 @@ open_interest = client.get_open_interest(Exchange.BYBIT, symbol)
 ```
 
 由于 tuple 型返回结构保持一致，切换到 Bybit 仅需调整 `exchange` 枚举即可。
+
+## Bitget U 本位合约示例
+
+Bitget 的实现位于 `market_data_fetch.exchanges.bitget`，导入即可注册：
+
+```python
+import market_data_fetch.exchanges.bitget  # 注册 Bitget 数据源
+
+from market_data_fetch import Exchange, MarketDataClient, Symbol
+
+client = MarketDataClient()
+symbol = Symbol("BTC", "USDT")
+
+mark_price, index_price, funding_rate, next_funding = client.get_latest_mark_price(Exchange.BITGET, symbol)
+premium_value, premium_ts = client.get_latest_premium_index(Exchange.BITGET, symbol)
+```
+
+Bitget 未公开独立的溢价指数端点，因此实现会根据最新 Mark Price 与指数价格的差值计算溢价值；历史溢价 K 线同样由 Mark/Index K 线组合而成，字段顺序依旧与其他交易所保持一致。

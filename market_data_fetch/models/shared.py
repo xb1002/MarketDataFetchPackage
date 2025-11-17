@@ -17,6 +17,7 @@ class Exchange(StrEnum):
     BINANCE = "binance"
     OKX = "okx"
     BYBIT = "bybit"
+    BITGET = "bitget"
 
 
 class Interval(StrEnum):

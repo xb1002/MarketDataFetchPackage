@@ -11,11 +11,13 @@ from market_data_fetch.contracts.usdt_perp.interface import USDTPerpMarketDataSo
 from market_data_fetch.core.errors import ExchangeTransientError
 from market_data_fetch.core.queries import FundingRateWindow, HistoricalWindow
 from market_data_fetch.exchanges.binance.usdt_perp import BinanceUSDTPerpDataSource
+from market_data_fetch.exchanges.bitget.usdt_perp import BitgetUSDTPerpDataSource
 from market_data_fetch.exchanges.bybit.usdt_perp import BybitUSDTPerpDataSource
 from market_data_fetch.models.shared import Interval, Symbol
 
 BINANCE_TESTNET_BASE_URL = "https://testnet.binancefuture.com"
 BYBIT_BASE_URL = "https://api.bybit.com"
+BITGET_BASE_URL = "https://api.bitget.com"
 
 
 @dataclass(slots=True)
@@ -41,6 +43,13 @@ PROVIDERS: tuple[ProviderCase, ...] = (
         symbol=Symbol("BTC", "USDT"),
         price_limit=1000,
         funding_limit=200,
+    ),
+    ProviderCase(
+        name="bitget",
+        factory=lambda: BitgetUSDTPerpDataSource(base_url=BITGET_BASE_URL),
+        symbol=Symbol("BTC", "USDT"),
+        price_limit=1000,
+        funding_limit=100,
     ),
 )
 
