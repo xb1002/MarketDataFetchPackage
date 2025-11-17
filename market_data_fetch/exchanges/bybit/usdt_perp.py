@@ -33,6 +33,7 @@ FUNDING_HISTORY_ENDPOINT = "/v5/market/funding/history"
 TICKERS_ENDPOINT = "/v5/market/tickers"
 PREMIUM_INDEX_ENDPOINT = "/v5/market/premium-index-price"
 OPEN_INTEREST_ENDPOINT = "/v5/market/open-interest"
+OPEN_INTEREST_INTERVAL = "5min"
 DEFAULT_TIMEOUT = 10.0
 PRICE_KLINES_MAX_LIMIT = 1000
 INDEX_KLINES_MAX_LIMIT = 1000
@@ -162,7 +163,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         params = {
             "category": CATEGORY,
             "symbol": symbol.pair,
-            "intervalTime": "5m",
+            "intervalTime": OPEN_INTEREST_INTERVAL,
             "limit": 1,
         }
         payload = self._request(OPEN_INTEREST_ENDPOINT, params)
@@ -253,14 +254,15 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         return entries
 
     def _parse_kline(self, raw: Sequence[Any]) -> USDTPerpKline:
-        if len(raw) < 6:
+        if len(raw) < 5:
             raise MarketDataError("Unexpected Bybit kline payload structure")
         open_time = int(raw[0])
         open_price = self._to_decimal(raw[1])
         high = self._to_decimal(raw[2])
         low = self._to_decimal(raw[3])
         close = self._to_decimal(raw[4])
-        volume = self._to_decimal(raw[5])
+        volume_source = raw[5] if len(raw) > 5 else "0"
+        volume = self._to_decimal(volume_source)
         return (open_time, open_price, high, low, close, volume)
 
     def _parse_funding_point(self, raw: dict[str, Any]) -> USDTPerpFundingRatePoint:
