@@ -13,11 +13,13 @@ from market_data_fetch.core.queries import FundingRateWindow, HistoricalWindow
 from market_data_fetch.exchanges.binance.usdt_perp import BinanceUSDTPerpDataSource
 from market_data_fetch.exchanges.bitget.usdt_perp import BitgetUSDTPerpDataSource
 from market_data_fetch.exchanges.bybit.usdt_perp import BybitUSDTPerpDataSource
+from market_data_fetch.exchanges.okx.usdt_perp import OkxUSDTPerpDataSource
 from market_data_fetch.models.shared import Interval, Symbol
 
 BINANCE_TESTNET_BASE_URL = "https://testnet.binancefuture.com"
 BYBIT_BASE_URL = "https://api.bybit.com"
 BITGET_BASE_URL = "https://api.bitget.com"
+OKX_BASE_URL = "https://www.okx.com"
 
 
 @dataclass(slots=True)
@@ -50,6 +52,13 @@ PROVIDERS: tuple[ProviderCase, ...] = (
         symbol=Symbol("BTC", "USDT"),
         price_limit=100,
         funding_limit=200,
+    ),
+    ProviderCase(
+        name="okx",
+        factory=lambda: OkxUSDTPerpDataSource(base_url=OKX_BASE_URL),
+        symbol=Symbol("BTC", "USDT"),
+        price_limit=300,
+        funding_limit=400,
     ),
 )
 

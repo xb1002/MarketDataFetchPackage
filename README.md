@@ -73,6 +73,39 @@ Bitget 集成现已全面切换到 UTA 的 V3 行情接口：
 
 因此 `get_*_klines`、`get_latest_mark_price`、`get_latest_premium_index` 等方法都直接消费上述官方端点，输出与 Binance、Bybit 相同的 tuple 结构。
 
+## OKX U 本位合约示例
+
+OKX 的实现位于 `market_data_fetch.exchanges.okx`，导入后即可注册：
+
+```python
+import market_data_fetch.exchanges.okx  # 注册 OKX 数据源
+
+from market_data_fetch import Exchange, HistoricalWindow, Interval, MarketDataClient, Symbol
+
+client = MarketDataClient()
+symbol = Symbol("BTC", "USDT")
+
+price_klines = client.get_price_klines(
+    Exchange.OKX,
+    HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=200),
+)
+premium_klines = client.get_premium_index_klines(
+    Exchange.OKX,
+    HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=50),
+)
+
+mark_price = client.get_latest_mark_price(Exchange.OKX, symbol)
+```
+
+OKX 集成覆盖以下端点：
+
+- `/api/v5/market/candles`、`/api/v5/market/index-candles`、`/api/v5/market/mark-price-candles` 下载价格/指数/标记价 K 线（官方最大 limit 分别为 300/100/100 条）。
+- `/api/v5/public/premium-history` 返回溢价指数离散点，代码会将每条记录转换成 `USDTPerpKline` 并让 OHLC 值完全一致、成交量固定为 0，以满足统一的接口契约。
+- `/api/v5/public/funding-rate-history` 与 `/api/v5/public/funding-rate` 提供资金费率历史与最新值。
+- `/api/v5/market/tickers`、`/api/v5/market/index-tickers`、`/api/v5/public/mark-price`、`/api/v5/public/open-interest`、`/api/v5/public/instruments` 分别用于最新成交价、指数价、标记价、未平仓量与合约信息。
+
+即便 OKX 官方没有直接提供溢价指数 K 线，也能通过 `premium-history` 合成出符合 tuple 契约的结果，其余接口行为与 Binance/Bybit/Bitget 保持一致。
+
 ## 合约（Instrument）信息
 
 三家交易所均实现了 `get_instruments` 接口，可通过 `MarketDataClient` 统一获取：
@@ -100,7 +133,7 @@ tick_size = instrument["tick_size"]
 
 ## CCXT 数据正确性校验
 
-`tests/test_ccxt_parity.py` 会借助 [CCXT](https://github.com/ccxt/ccxt) 再次从 Binance/Bybit/Bitget 下载行情，并与本项目的接口返回逐一对齐，
+`tests/test_ccxt_parity.py` 会借助 [CCXT](https://github.com/ccxt/ccxt) 再次从 Binance/Bybit/Bitget/OKX 下载行情，并与本项目的接口返回逐一对齐，
 覆盖：
 
 - 价格/指数/标记/溢价 K 线；

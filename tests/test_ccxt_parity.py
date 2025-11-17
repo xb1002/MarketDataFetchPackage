@@ -14,6 +14,7 @@ from market_data_fetch.core.queries import FundingRateWindow, HistoricalWindow
 from market_data_fetch.exchanges.binance.usdt_perp import BinanceUSDTPerpDataSource
 from market_data_fetch.exchanges.bitget.usdt_perp import BitgetUSDTPerpDataSource
 from market_data_fetch.exchanges.bybit.usdt_perp import BybitUSDTPerpDataSource
+from market_data_fetch.exchanges.okx.usdt_perp import OkxUSDTPerpDataSource
 from market_data_fetch.models.shared import Interval, Symbol
 from market_data_fetch.models.usdt_perp import (
     USDTPerpFundingRatePoint,
@@ -76,6 +77,14 @@ CCXT_CASES: tuple[CCXTProviderCase, ...] = (
         ccxt_symbol="BTC/USDT:USDT",
         ccxt_options={"options": {"defaultType": "swap"}},
         supports_premium_series=False,
+    ),
+    CCXTProviderCase(
+        name="okx",
+        factory=OkxUSDTPerpDataSource,
+        symbol=Symbol("BTC", "USDT"),
+        ccxt_id="okx",
+        ccxt_symbol="BTC/USDT:USDT",
+        ccxt_options={"options": {"defaultType": "swap", "defaultSettle": "USDT"}},
     ),
 )
 
