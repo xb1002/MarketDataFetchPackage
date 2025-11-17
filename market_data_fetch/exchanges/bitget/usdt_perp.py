@@ -24,13 +24,15 @@ from ...models.usdt_perp import (
 )
 
 BASE_URL = "https://api.bitget.com"
-CANDLES_ENDPOINT = "/api/mix/v1/market/candles"
-FUNDING_HISTORY_ENDPOINT = "/api/mix/v1/market/history-fundRate"
+# Bitget's "V3" UTA market APIs live under the v2 namespace.
+CANDLES_ENDPOINT = "/api/v2/mix/market/candles"
+FUNDING_HISTORY_ENDPOINT = "/api/v2/mix/market/history-fund-rate"
 TICKER_ENDPOINT = "/api/mix/v1/market/ticker"
 MARK_PRICE_ENDPOINT = "/api/mix/v1/market/mark-price"
 FUNDING_TIME_ENDPOINT = "/api/mix/v1/market/funding-time"
 OPEN_INTEREST_ENDPOINT = "/api/mix/v1/market/open-interest"
 PRODUCT_SUFFIX = "_UMCBL"
+PRODUCT_TYPE = "umcbl"
 DEFAULT_TIMEOUT = 10.0
 KLINE_MAX_LIMIT = 1000
 FUNDING_MAX_LIMIT = 100
@@ -191,10 +193,11 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             limit_override=limit_override,
             time_range=time_range,
         )
-        payload = self._request_json(CANDLES_ENDPOINT, params)
-        if not isinstance(payload, list) or not payload:
+        payload = self._request_wrapped(CANDLES_ENDPOINT, params)
+        data = payload.get("data")
+        if not isinstance(data, Sequence) or not data:
             raise MarketDataError(f"Bitget returned empty {endpoint_name}")
-        return payload
+        return data
 
     def _historical_params(
         self,
@@ -209,7 +212,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         limit = limit_override or self._enforce_limit(query.limit, KLINE_MAX_LIMIT, endpoint_name=endpoint_name)
         start_ms, end_ms = time_range or self._derive_time_range(query, limit)
         params: dict[str, Any] = {
-            "symbol": self._symbol_id(query.symbol),
+            "symbol": self._symbol_pair(query.symbol),
+            "productType": PRODUCT_TYPE,
             "granularity": interval,
             "startTime": start_ms,
             "endTime": end_ms,
@@ -222,7 +226,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
     def _funding_params(self, query: FundingRateWindow) -> dict[str, Any]:
         limit = self._enforce_limit(query.limit, FUNDING_MAX_LIMIT, endpoint_name="funding history")
         params: dict[str, Any] = {
-            "symbol": self._symbol_id(query.symbol),
+            "symbol": self._symbol_pair(query.symbol),
+            "productType": PRODUCT_TYPE,
             "pageSize": limit,
         }
         return params
@@ -304,6 +309,9 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def _symbol_id(self, symbol: Symbol) -> str:
         return f"{symbol.pair}{PRODUCT_SUFFIX}"
+
+    def _symbol_pair(self, symbol: Symbol) -> str:
+        return symbol.pair
 
     def _infer_timestamp(self, ticker: dict[str, Any], server_time: int) -> int:
         candidate = ticker.get("timestamp")
