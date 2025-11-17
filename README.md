@@ -97,3 +97,27 @@ tick_size = instrument["tick_size"]
 - `step_size`：数量精度（下单步长）。
 - `min_qty`/`max_qty`：合约允许的下单数量区间。
 - `status`：交易所原始状态字符串（如 `TRADING`、`online` 等）。
+
+## CCXT 数据正确性校验
+
+`tests/test_ccxt_parity.py` 会借助 [CCXT](https://github.com/ccxt/ccxt) 再次从 Binance/Bybit/Bitget 下载行情，并与本项目的接口返回逐一对齐，
+覆盖：
+
+- 价格/指数/标记/溢价 K 线；
+- 最新成交价、指数价、溢价指数与 Mark Price 快照；
+- 资金费率历史与最新值；
+- 未平仓量与合约（instrument）元数据。
+
+运行这些校验测试前，请先安装可选依赖：
+
+```bash
+pip install .[test]
+```
+
+随后可以根据需要筛选交易所，例如只对 Binance 做 CCXT 校验：
+
+```bash
+pytest tests/test_ccxt_parity.py -k binance
+```
+
+若 CCXT 无法访问目标交易所（例如被限流或地理限制），fixture 会自动 `skip`，因此不会影响其它测试结果。

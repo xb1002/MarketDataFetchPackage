@@ -100,6 +100,7 @@ class USDTPerpMarketDataSource(Protocol):
    - 为模型与查询对象编写验证测试。
    - 使用 fixture 模拟交易所响应，确保 fetcher 对齐协议。
    - 在 README 与 API 文档中列出接口方法及参数说明。
+   - 通过 `tests/test_ccxt_parity.py` 借助 CCXT 对真实交易所数据做交叉校验，验证价格/指数/溢价 K 线、最新行情、资金费率、未平仓量与合约信息是否与官方返回保持一致。
 
 通过上述接口与计划，可在专注 U 本位合约的同时，为未来的币本位和杠杆模块提供一致的扩展点。
 
@@ -108,3 +109,4 @@ class USDTPerpMarketDataSource(Protocol):
 - **Binance**：已落地全部 U 本位接口，使用官方 Futures REST API (`/fapi/v1/*`)，并在 tests 中连通 testnet 覆盖所有方法。
 - **Bybit**：新增 `BybitUSDTPerpDataSource`，覆盖 `/v5/market/kline`、`/v5/market/index-price-kline`、`/v5/market/mark-price-kline`、`/v5/market/premium-index-price-kline`、`/v5/market/funding/history`、`/v5/market/tickers`、`/v5/market/premium-index-price` 与 `/v5/market/open-interest`。同时提供 live 测试（遇到 CloudFront 403 会自动以 `ExchangeTransientError` 跳过），保证接口契约在真实网络环境下验证。
 - **Bitget**：新增 `BitgetUSDTPerpDataSource`，全面使用 UTA V3 行情接口：`/api/v3/market/history-candles`（`category=USDT-FUTURES`，`type=MARKET/INDEX/MARK/PREMIUM`）负责所有历史 K 线，`/api/v3/market/history-fund-rate` 与 `/api/v3/market/current-fund-rate` 提供资金费率历史及下一次结算时间，`/api/v3/market/tickers`、`/api/v3/market/open-interest` 提供最新成交价、标记价、指数价与未平仓量，`/api/v3/market/instruments` 则返回合约信息，保证所有数据下载都来自统一账户官方端点。
+- **CCXT 正确性验证**：新增 `tests/test_ccxt_parity.py`，为 Binance/Bybit/Bitget 建立统一的参数化 fixture，并通过 CCXT 重新抓取行情，与本项目返回做一对一比对（网络异常会自动 `skip`），确保真实数据与实现逻辑保持一致。
