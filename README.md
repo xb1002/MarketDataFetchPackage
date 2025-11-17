@@ -63,7 +63,6 @@ client = MarketDataClient()
 symbol = Symbol("BTC", "USDT")
 
 mark_price, index_price, funding_rate, next_funding = client.get_latest_mark_price(Exchange.BITGET, symbol)
-premium_value, premium_ts = client.get_latest_premium_index(Exchange.BITGET, symbol)
 ```
 
-Bitget 未公开独立的溢价指数端点，因此实现会根据最新 Mark Price 与指数价格的差值计算溢价值；历史溢价 K 线同样由 Mark/Index K 线组合而成，字段顺序依旧与其他交易所保持一致。
+Bitget 尚未在公开 REST 接口中提供溢价指数（历史/最新）数据，因此调用 `get_premium_index_klines` 或 `get_latest_premium_index` 会抛出 `MarketDataError`，提示该能力暂不可用。

@@ -8,7 +8,7 @@ from typing import Callable
 import pytest
 
 from market_data_fetch.contracts.usdt_perp.interface import USDTPerpMarketDataSource
-from market_data_fetch.core.errors import ExchangeTransientError
+from market_data_fetch.core.errors import ExchangeTransientError, MarketDataError
 from market_data_fetch.core.queries import FundingRateWindow, HistoricalWindow
 from market_data_fetch.exchanges.binance.usdt_perp import BinanceUSDTPerpDataSource
 from market_data_fetch.exchanges.bitget.usdt_perp import BitgetUSDTPerpDataSource
@@ -27,6 +27,7 @@ class ProviderCase:
     symbol: Symbol
     price_limit: int
     funding_limit: int
+    supports_premium: bool = True
 
 
 PROVIDERS: tuple[ProviderCase, ...] = (
@@ -50,6 +51,7 @@ PROVIDERS: tuple[ProviderCase, ...] = (
         symbol=Symbol("BTC", "USDT"),
         price_limit=1000,
         funding_limit=100,
+        supports_premium=False,
     ),
 )
 
@@ -112,6 +114,11 @@ def test_get_mark_price_klines_live(provider: ProviderContext) -> None:
 @pytest.mark.integration
 def test_get_premium_index_klines_live(provider: ProviderContext) -> None:
     window = HistoricalWindow(symbol=provider.case.symbol, interval=Interval.MINUTE_1, limit=3)
+    if not provider.case.supports_premium:
+        with pytest.raises(MarketDataError):
+            provider.source.get_premium_index_klines(window)
+        return
+
     klines = _call_or_skip(provider, lambda: provider.source.get_premium_index_klines(window))
 
     assert len(klines) > 0
@@ -170,6 +177,11 @@ def test_get_latest_index_price_live(provider: ProviderContext) -> None:
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_premium_index_live(provider: ProviderContext) -> None:
+    if not provider.case.supports_premium:
+        with pytest.raises(MarketDataError):
+            provider.source.get_latest_premium_index(provider.case.symbol)
+        return
+
     value, ts = _call_or_skip(provider, lambda: provider.source.get_latest_premium_index(provider.case.symbol))
 
     assert isinstance(value, Decimal)

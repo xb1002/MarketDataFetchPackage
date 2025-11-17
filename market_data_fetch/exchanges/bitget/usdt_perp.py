@@ -102,43 +102,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         return [self._parse_kline(row) for row in entries]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
-        limit = self._enforce_limit(query.limit, KLINE_MAX_LIMIT, endpoint_name="premium index klines")
-        time_range = self._derive_time_range(query, limit)
-        mark_entries_raw = self._fetch_kline_series(
-            query,
-            endpoint_name="mark price klines",
-            kline_type="mark",
-            limit_override=limit,
-            time_range=time_range,
-        )
-        index_entries_raw = self._fetch_kline_series(
-            query,
-            endpoint_name="index price klines",
-            kline_type="index",
-            limit_override=limit,
-            time_range=time_range,
-        )
-        mark_klines = [self._parse_kline(row) for row in mark_entries_raw]
-        index_klines = [self._parse_kline(row) for row in index_entries_raw]
-        index_map = {entry[0]: entry for entry in index_klines}
-        premium: list[USDTPerpKline] = []
-        for mark in mark_klines:
-            index_entry = index_map.get(mark[0])
-            if not index_entry:
-                continue
-            premium.append(
-                (
-                    mark[0],
-                    mark[1] - index_entry[1],
-                    mark[2] - index_entry[2],
-                    mark[3] - index_entry[3],
-                    mark[4] - index_entry[4],
-                    mark[5],
-                )
-            )
-        if not premium:
-            raise MarketDataError("Bitget premium index data unavailable for requested window")
-        return premium
+        raise MarketDataError("Bitget does not expose premium index klines via public API")
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         params = self._funding_params(query)
@@ -171,11 +135,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (index_price, timestamp)
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
-        mark_price, _ = self._fetch_mark_price(symbol)
-        ticker, server_time = self._fetch_ticker(symbol)
-        index_price = self._to_decimal(ticker.get("indexPrice"))
-        timestamp = self._infer_timestamp(ticker, server_time)
-        return (mark_price - index_price, timestamp)
+        raise MarketDataError("Bitget does not expose a premium index snapshot via public API")
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         window = FundingRateWindow(symbol=symbol, limit=1)
