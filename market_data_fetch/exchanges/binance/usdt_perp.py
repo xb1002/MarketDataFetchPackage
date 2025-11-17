@@ -299,17 +299,26 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         return None
 
     def _parse_instrument(self, raw: dict[str, Any]) -> USDTPerpInstrument:
-        symbol = raw.get("symbol")
-        base_asset = raw.get("baseAsset") or ""
-        quote_asset = raw.get("quoteAsset") or ""
-        status = raw.get("status") or ""
+        symbol = str(raw.get("symbol") or "")
+        base_asset = str(raw.get("baseAsset") or "")
+        quote_asset = str(raw.get("quoteAsset") or "")
+        status = str(raw.get("status") or "")
         price_filter = self._find_filter(raw, "PRICE_FILTER")
         lot_filter = self._find_filter(raw, "LOT_SIZE")
         tick_size = Decimal(price_filter.get("tickSize", "0"))
         step_size = Decimal(lot_filter.get("stepSize", "0"))
         min_qty = Decimal(lot_filter.get("minQty", "0"))
         max_qty = Decimal(lot_filter.get("maxQty", "0"))
-        return (symbol, base_asset, quote_asset, tick_size, step_size, min_qty, max_qty, status)
+        return {
+            "symbol": symbol,
+            "base_asset": base_asset,
+            "quote_asset": quote_asset,
+            "tick_size": tick_size,
+            "step_size": step_size,
+            "min_qty": min_qty,
+            "max_qty": max_qty,
+            "status": status,
+        }
 
     def _find_filter(self, raw: dict[str, Any], filter_type: str) -> dict[str, Any]:
         filters = raw.get("filters")

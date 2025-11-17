@@ -285,17 +285,26 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (timestamp, rate)
 
     def _parse_instrument(self, raw: dict[str, Any]) -> USDTPerpInstrument:
-        symbol = raw.get("symbol")
-        base_coin = raw.get("baseCoin") or ""
-        quote_coin = raw.get("quoteCoin") or ""
-        status = raw.get("status") or ""
+        symbol = str(raw.get("symbol") or "")
+        base_coin = str(raw.get("baseCoin") or "")
+        quote_coin = str(raw.get("quoteCoin") or "")
+        status = str(raw.get("status") or "")
         price_filter = raw.get("priceFilter") or {}
         lot_filter = raw.get("lotSizeFilter") or {}
         tick_size = self._to_decimal(price_filter.get("tickSize"))
         step_size = self._to_decimal(lot_filter.get("qtyStep"))
         min_qty = self._to_decimal(lot_filter.get("minOrderQty"))
         max_qty = self._to_decimal(lot_filter.get("maxOrderQty"))
-        return (symbol, base_coin, quote_coin, tick_size, step_size, min_qty, max_qty, status)
+        return {
+            "symbol": symbol,
+            "base_asset": base_coin,
+            "quote_asset": quote_coin,
+            "tick_size": tick_size,
+            "step_size": step_size,
+            "min_qty": min_qty,
+            "max_qty": max_qty,
+            "status": status,
+        }
 
     def _infer_timestamp(self, ticker: dict[str, Any], server_time: int) -> int:
         candidate = ticker.get("timestamp") or ticker.get("ts")

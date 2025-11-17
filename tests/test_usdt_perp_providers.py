@@ -207,16 +207,15 @@ def test_get_instruments(provider: ProviderContext) -> None:
 
     assert len(instruments) > 0
     target = provider.case.symbol.pair
-    match = next((item for item in instruments if item[0] == target), None)
+    match = next((item for item in instruments if item["symbol"] == target), None)
     assert match is not None
-    _, base, quote, tick_size, step_size, min_qty, max_qty, status = match
-    assert isinstance(base, str)
-    assert isinstance(quote, str)
-    assert isinstance(tick_size, Decimal)
-    assert isinstance(step_size, Decimal)
-    assert isinstance(min_qty, Decimal)
-    assert isinstance(max_qty, Decimal)
-    assert isinstance(status, str)
+    assert isinstance(match["base_asset"], str)
+    assert isinstance(match["quote_asset"], str)
+    assert isinstance(match["tick_size"], Decimal)
+    assert isinstance(match["step_size"], Decimal)
+    assert isinstance(match["min_qty"], Decimal)
+    assert isinstance(match["max_qty"], Decimal)
+    assert isinstance(match["status"], str)
 
 
 def test_price_kline_limit_validation(provider: ProviderContext) -> None:

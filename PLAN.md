@@ -6,7 +6,7 @@
 ## 接口组织设计
 - **包结构**：
   - `market_data_fetch/contracts/usdt_perp/interface.py`：定义 `USDTPerpMarketDataSource` 协议，面向历史/最新行情读取能力。
-  - `market_data_fetch/models/usdt_perp.py`：以轻量 tuple（避免 dataclass 开销）描述所有返回数据模型（K 线、指数、资金费率、未平仓量等）。
+  - `market_data_fetch/models/usdt_perp.py`：以轻量 tuple（避免 dataclass 开销）描述所有返回数据模型（K 线、指数、资金费率、未平仓量等），合约信息则使用 `TypedDict` 保证字段语义清晰。
   - `market_data_fetch/models/shared.py`：时间粒度、交易对、分页游标等基础类型，未来币本位/杠杆可复用。
   - `market_data_fetch/core/queries.py`：封装查询参数对象，支持 start/end/limit 组合校验。
   - `market_data_fetch/exchanges/<exchange>/usdt_perp.py`：交易所实现；仅依赖接口与模型，确保扩展性。
@@ -31,7 +31,16 @@ USDTPerpOpenInterest = tuple[int, Decimal]
 USDTPerpPriceTicker = tuple[int, Decimal]
 USDTPerpIndexPricePoint = tuple[int, Decimal]
 USDTPerpPremiumIndexPoint = tuple[int, Decimal]
-USDTPerpInstrument = tuple[str, str, str, Decimal, Decimal, Decimal, Decimal, str]
+
+class USDTPerpInstrument(TypedDict):
+    symbol: str
+    base_asset: str
+    quote_asset: str
+    tick_size: Decimal
+    step_size: Decimal
+    min_qty: Decimal
+    max_qty: Decimal
+    status: str
 ```
 
 ## 查询对象

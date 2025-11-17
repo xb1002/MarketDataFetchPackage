@@ -83,13 +83,16 @@ from market_data_fetch import Exchange, MarketDataClient
 client = MarketDataClient()
 
 instruments = client.get_instruments(Exchange.BINANCE)
-symbol, base, quote, tick_size, step_size, min_qty, max_qty, status = instruments[0]
+instrument = instruments[0]
+symbol = instrument["symbol"]
+base = instrument["base_asset"]
+tick_size = instrument["tick_size"]
 ```
 
-返回结构同样是 tuple，以便在批量存储/序列化场景中保持较低的内存占用：
+返回结构改为 `dict`，字段含义如下，便于基于键名读取并避免符号顺序差异导致错误：
 
 - `symbol`：交易所合约符号（如 `BTCUSDT`）。
-- `base`/`quote`：基础币与计价币。
+- `base_asset`/`quote_asset`：基础币与计价币。
 - `tick_size`：价格精度（最小价格变动）。
 - `step_size`：数量精度（下单步长）。
 - `min_qty`/`max_qty`：合约允许的下单数量区间。

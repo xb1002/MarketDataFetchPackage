@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TypeAlias
+from typing import TypeAlias, TypedDict
 
 # The tuple layouts intentionally avoid dataclasses to minimize memory overhead
 # when processing very large payloads (millions of rows) before persisting them.
@@ -29,14 +29,16 @@ USDTPerpIndexPricePoint: TypeAlias = tuple[int, Decimal]
 # ``(timestamp_ms, premium_index_value)``
 USDTPerpPremiumIndexPoint: TypeAlias = tuple[int, Decimal]
 
-# ``(symbol, base_asset, quote_asset, tick_size, step_size, min_qty, max_qty, status)``
-USDTPerpInstrument: TypeAlias = tuple[
-    str,
-    str,
-    str,
-    Decimal,
-    Decimal,
-    Decimal,
-    Decimal,
-    str,
-]
+
+
+class USDTPerpInstrument(TypedDict):
+    """Instrument metadata for a USDT-margined perpetual contract."""
+
+    symbol: str
+    base_asset: str
+    quote_asset: str
+    tick_size: Decimal
+    step_size: Decimal
+    min_qty: Decimal
+    max_qty: Decimal
+    status: str
