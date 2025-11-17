@@ -48,8 +48,8 @@ PROVIDERS: tuple[ProviderCase, ...] = (
         name="bitget",
         factory=lambda: BitgetUSDTPerpDataSource(base_url=BITGET_BASE_URL),
         symbol=Symbol("BTC", "USDT"),
-        price_limit=1000,
-        funding_limit=100,
+        price_limit=100,
+        funding_limit=200,
     ),
 )
 

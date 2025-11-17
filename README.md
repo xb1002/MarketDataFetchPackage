@@ -65,5 +65,10 @@ symbol = Symbol("BTC", "USDT")
 mark_price, index_price, funding_rate, next_funding = client.get_latest_mark_price(Exchange.BITGET, symbol)
 ```
 
-Bitget 通过 UTA 的 V3 行情接口（REST 路径 `/api/v2/mix/market/candles` 并携带 `productType=umcbl` 与 `kLineType=premium` 参数）提供溢价指数（历史/最新）数据，详见 [官方文档](https://www.bitget.com/api-doc/uta/public/Instruments)。
-因此 `get_premium_index_klines` 与 `get_latest_premium_index` 会直接消费该端点，返回与 Binance、Bybit 相同的 tuple 结构。
+Bitget 集成现已全面切换到 UTA 的 V3 行情接口：
+
+- `/api/v3/market/history-candles`（`category=USDT-FUTURES`，`type=MARKET/INDEX/MARK/PREMIUM`）用于获取价格、指数、标记价与溢价 K 线；
+- `/api/v3/market/history-fund-rate` 与 `/api/v3/market/current-fund-rate` 分别用于资金费率历史与下一次结算时间；
+- `/api/v3/market/tickers`、`/api/v3/market/open-interest` 则返回最新成交价、Mark Price、指数价与未平仓量。
+
+因此 `get_*_klines`、`get_latest_mark_price`、`get_latest_premium_index` 等方法都直接消费上述官方端点，输出与 Binance、Bybit 相同的 tuple 结构。

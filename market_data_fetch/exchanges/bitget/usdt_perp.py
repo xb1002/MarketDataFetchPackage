@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 
 import requests
 
@@ -24,19 +24,19 @@ from ...models.usdt_perp import (
 )
 
 BASE_URL = "https://api.bitget.com"
-# Bitget's "V3" UTA market APIs live under the v2 namespace.
-CANDLES_ENDPOINT = "/api/v2/mix/market/candles"
-FUNDING_HISTORY_ENDPOINT = "/api/v2/mix/market/history-fund-rate"
-TICKER_ENDPOINT = "/api/mix/v1/market/ticker"
-MARK_PRICE_ENDPOINT = "/api/mix/v1/market/mark-price"
-FUNDING_TIME_ENDPOINT = "/api/mix/v1/market/funding-time"
-OPEN_INTEREST_ENDPOINT = "/api/mix/v1/market/open-interest"
-PRODUCT_SUFFIX = "_UMCBL"
-PRODUCT_TYPE = "umcbl"
+HISTORY_CANDLES_ENDPOINT = "/api/v3/market/history-candles"
+FUNDING_HISTORY_ENDPOINT = "/api/v3/market/history-fund-rate"
+CURRENT_FUNDING_ENDPOINT = "/api/v3/market/current-fund-rate"
+TICKER_ENDPOINT = "/api/v3/market/tickers"
+OPEN_INTEREST_ENDPOINT = "/api/v3/market/open-interest"
+CATEGORY = "USDT-FUTURES"
 DEFAULT_TIMEOUT = 10.0
-KLINE_MAX_LIMIT = 1000
-FUNDING_MAX_LIMIT = 100
-PREMIUM_KLINE_TYPE = "premium"
+KLINE_MAX_LIMIT = 100
+FUNDING_MAX_LIMIT = 200
+KLINE_TYPE_MARKET = "MARKET"
+KLINE_TYPE_MARK = "MARK"
+KLINE_TYPE_INDEX = "INDEX"
+KLINE_TYPE_PREMIUM = "PREMIUM"
 
 INTERVAL_MAP: dict[Interval, str] = {
     Interval.MINUTE_1: "1m",
@@ -93,53 +93,71 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
     # ------------------------------------------------------------------
     # Historical series
     def get_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
-        entries = self._fetch_kline_series(query, endpoint_name="price klines")
+        entries = self._fetch_kline_series(
+            query, endpoint_name="price klines", kline_type=KLINE_TYPE_MARKET
+        )
         return [self._parse_kline(row) for row in entries]
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
-        entries = self._fetch_kline_series(query, endpoint_name="index price klines", kline_type="index")
+        entries = self._fetch_kline_series(
+            query, endpoint_name="index price klines", kline_type=KLINE_TYPE_INDEX
+        )
         return [self._parse_kline(row) for row in entries]
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
-        entries = self._fetch_kline_series(query, endpoint_name="mark price klines", kline_type="mark")
+        entries = self._fetch_kline_series(
+            query, endpoint_name="mark price klines", kline_type=KLINE_TYPE_MARK
+        )
         return [self._parse_kline(row) for row in entries]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         entries = self._fetch_kline_series(
             query,
             endpoint_name="premium index klines",
-            kline_type=PREMIUM_KLINE_TYPE,
+            kline_type=KLINE_TYPE_PREMIUM,
         )
         return [self._parse_kline(row) for row in entries]
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         params = self._funding_params(query)
         payload = self._request_wrapped(FUNDING_HISTORY_ENDPOINT, params)
-        entries = payload.get("data")
-        if not isinstance(entries, Iterable):
+        data = payload.get("data")
+        if not isinstance(data, dict):
             raise MarketDataError("Bitget returned malformed funding rate history payload")
-        return [self._parse_funding_point(item) for item in entries]
+        entries = data.get("resultList")
+        if not isinstance(entries, Sequence):
+            raise MarketDataError("Bitget returned malformed funding rate history payload")
+        points = [self._parse_funding_point(item) for item in entries]
+        start_ms = _datetime_to_ms(query.start_time) if query.start_time else None
+        end_ms = _datetime_to_ms(query.end_time) if query.end_time else None
+        if start_ms or end_ms:
+            filtered: list[USDTPerpFundingRatePoint] = []
+            for timestamp, rate in points:
+                if start_ms and timestamp < start_ms:
+                    continue
+                if end_ms and timestamp > end_ms:
+                    continue
+                filtered.append((timestamp, rate))
+            return filtered
+        return points
 
     # ------------------------------------------------------------------
     # Latest snapshots
     def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
-        ticker, server_time = self._fetch_ticker(symbol)
-        price = self._to_decimal(ticker.get("last"))
-        timestamp = self._infer_timestamp(ticker, server_time)
+        ticker, timestamp = self._fetch_ticker(symbol)
+        price = self._to_decimal(ticker.get("lastPrice"))
         return (price, timestamp)
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
-        mark_price, _ = self._fetch_mark_price(symbol)
         ticker, _ = self._fetch_ticker(symbol)
+        mark_price = self._to_decimal(ticker.get("markPrice"))
         index_price = self._to_decimal(ticker.get("indexPrice"))
-        funding_rate = self._to_decimal(ticker.get("fundingRate"))
-        next_funding = self._fetch_next_funding_time(symbol)
+        funding_rate, next_funding = self._fetch_current_funding(symbol)
         return (mark_price, index_price, funding_rate, next_funding)
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
-        ticker, server_time = self._fetch_ticker(symbol)
+        ticker, timestamp = self._fetch_ticker(symbol)
         index_price = self._to_decimal(ticker.get("indexPrice"))
-        timestamp = self._infer_timestamp(ticker, server_time)
         return (index_price, timestamp)
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
@@ -147,7 +165,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         entries = self._fetch_kline_series(
             window,
             endpoint_name="premium index klines",
-            kline_type=PREMIUM_KLINE_TYPE,
+            kline_type=KLINE_TYPE_PREMIUM,
             limit_override=1,
         )
         if not entries:
@@ -162,13 +180,17 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         return history[0]
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
-        params = {"symbol": self._symbol_id(symbol)}
+        params = {"category": CATEGORY, "symbol": self._symbol_pair(symbol)}
         payload = self._request_wrapped(OPEN_INTEREST_ENDPOINT, params)
         data = payload.get("data")
         if not isinstance(data, dict):
             raise MarketDataError("Bitget returned malformed open interest payload")
-        timestamp = int(data.get("timestamp") or payload.get("requestTime") or 0)
-        amount = self._to_decimal(data.get("amount"))
+        entries = data.get("list")
+        if not isinstance(entries, Sequence) or not entries:
+            raise MarketDataError("Bitget returned empty open interest payload")
+        entry = entries[0]
+        timestamp = int(data.get("ts") or payload.get("requestTime") or 0)
+        amount = self._to_decimal(entry.get("openInterest"))
         return (timestamp, amount)
 
     # ------------------------------------------------------------------
@@ -184,16 +206,14 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         endpoint_name: str,
         kline_type: str | None = None,
         limit_override: int | None = None,
-        time_range: tuple[int, int] | None = None,
     ) -> Sequence[Sequence[Any]]:
         params = self._historical_params(
             query,
             endpoint_name=endpoint_name,
             kline_type=kline_type,
             limit_override=limit_override,
-            time_range=time_range,
         )
-        payload = self._request_wrapped(CANDLES_ENDPOINT, params)
+        payload = self._request_wrapped(HISTORY_CANDLES_ENDPOINT, params)
         data = payload.get("data")
         if not isinstance(data, Sequence) or not data:
             raise MarketDataError(f"Bitget returned empty {endpoint_name}")
@@ -206,58 +226,52 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         endpoint_name: str,
         kline_type: str | None,
         limit_override: int | None = None,
-        time_range: tuple[int, int] | None = None,
     ) -> dict[str, Any]:
         interval = self._map_interval(query.interval)
         limit = limit_override or self._enforce_limit(query.limit, KLINE_MAX_LIMIT, endpoint_name=endpoint_name)
-        start_ms, end_ms = time_range or self._derive_time_range(query, limit)
         params: dict[str, Any] = {
+            "category": CATEGORY,
             "symbol": self._symbol_pair(query.symbol),
-            "productType": PRODUCT_TYPE,
-            "granularity": interval,
-            "startTime": start_ms,
-            "endTime": end_ms,
+            "interval": interval,
             "limit": limit,
         }
+        if query.start_time or query.end_time:
+            start_ms, end_ms = self._derive_time_range(query, limit)
+            params["startTime"] = start_ms
+            params["endTime"] = end_ms
         if kline_type:
-            params["kLineType"] = kline_type
+            params["type"] = kline_type
         return params
 
     def _funding_params(self, query: FundingRateWindow) -> dict[str, Any]:
         limit = self._enforce_limit(query.limit, FUNDING_MAX_LIMIT, endpoint_name="funding history")
         params: dict[str, Any] = {
+            "category": CATEGORY,
             "symbol": self._symbol_pair(query.symbol),
-            "productType": PRODUCT_TYPE,
-            "pageSize": limit,
+            "limit": limit,
         }
         return params
 
     def _fetch_ticker(self, symbol: Symbol) -> tuple[dict[str, Any], int]:
-        params = {"symbol": self._symbol_id(symbol)}
+        params = {"category": CATEGORY, "symbol": self._symbol_pair(symbol)}
         payload = self._request_wrapped(TICKER_ENDPOINT, params)
         data = payload.get("data")
-        if not isinstance(data, dict):
+        if not isinstance(data, Sequence) or not data:
             raise MarketDataError("Bitget returned malformed ticker payload")
-        server_time = int(payload.get("requestTime") or data.get("timestamp") or 0)
-        return data, server_time
+        entry = data[0]
+        timestamp = int(entry.get("ts") or payload.get("requestTime") or 0)
+        return entry, timestamp
 
-    def _fetch_mark_price(self, symbol: Symbol) -> tuple[Decimal, int]:
-        params = {"symbol": self._symbol_id(symbol)}
-        payload = self._request_wrapped(MARK_PRICE_ENDPOINT, params)
+    def _fetch_current_funding(self, symbol: Symbol) -> tuple[Decimal, int]:
+        params = {"symbol": self._symbol_pair(symbol)}
+        payload = self._request_wrapped(CURRENT_FUNDING_ENDPOINT, params)
         data = payload.get("data")
-        if not isinstance(data, dict):
-            raise MarketDataError("Bitget returned malformed mark price payload")
-        price = self._to_decimal(data.get("markPrice"))
-        timestamp = int(data.get("timestamp") or payload.get("requestTime") or 0)
-        return price, timestamp
-
-    def _fetch_next_funding_time(self, symbol: Symbol) -> int:
-        params = {"symbol": self._symbol_id(symbol)}
-        payload = self._request_wrapped(FUNDING_TIME_ENDPOINT, params)
-        data = payload.get("data")
-        if not isinstance(data, dict):
-            raise MarketDataError("Bitget returned malformed funding time payload")
-        return int(data.get("fundingTime") or payload.get("requestTime") or 0)
+        if not isinstance(data, Sequence) or not data:
+            raise MarketDataError("Bitget returned malformed current funding payload")
+        entry = data[0]
+        rate = self._to_decimal(entry.get("fundingRate"))
+        next_update = int(entry.get("nextUpdate") or 0)
+        return rate, next_update
 
     def _derive_time_range(self, query: HistoricalWindow, limit: int) -> tuple[int, int]:
         interval_ms = INTERVAL_MILLISECONDS.get(query.interval)
@@ -303,23 +317,12 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
     def _parse_funding_point(self, raw: Any) -> USDTPerpFundingRatePoint:
         if not isinstance(raw, dict):
             raise MarketDataError("Bitget returned malformed funding rate entry")
-        timestamp = int(raw.get("settleTime") or raw.get("fundingTime") or 0)
+        timestamp = int(raw.get("fundingRateTimestamp") or 0)
         rate = self._to_decimal(raw.get("fundingRate"))
         return (timestamp, rate)
 
-    def _symbol_id(self, symbol: Symbol) -> str:
-        return f"{symbol.pair}{PRODUCT_SUFFIX}"
-
     def _symbol_pair(self, symbol: Symbol) -> str:
         return symbol.pair
-
-    def _infer_timestamp(self, ticker: dict[str, Any], server_time: int) -> int:
-        candidate = ticker.get("timestamp")
-        if candidate:
-            return int(candidate)
-        if server_time:
-            return server_time
-        return _now_ms()
 
     def _request_wrapped(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
         payload = self._request_json(path, params)
