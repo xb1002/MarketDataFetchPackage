@@ -28,9 +28,9 @@ USDTPerpKline = tuple[int, Decimal, Decimal, Decimal, Decimal, Decimal]
 USDTPerpFundingRatePoint = tuple[int, Decimal]
 USDTPerpMarkPrice = tuple[Decimal, Decimal, Decimal, int]
 USDTPerpOpenInterest = tuple[int, Decimal]
-USDTPerpPriceTicker = tuple[Decimal, int]
-USDTPerpIndexPricePoint = tuple[Decimal, int]
-USDTPerpPremiumIndexPoint = tuple[Decimal, int]
+USDTPerpPriceTicker = tuple[int, Decimal]
+USDTPerpIndexPricePoint = tuple[int, Decimal]
+USDTPerpPremiumIndexPoint = tuple[int, Decimal]
 USDTPerpInstrument = tuple[str, str, str, Decimal, Decimal, Decimal, Decimal, str]
 ```
 

@@ -148,7 +148,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
     def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
         ticker, timestamp = self._fetch_ticker(symbol)
         price = self._to_decimal(ticker.get("lastPrice"))
-        return (price, timestamp)
+        return (timestamp, price)
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         ticker, _ = self._fetch_ticker(symbol)
@@ -160,7 +160,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         ticker, timestamp = self._fetch_ticker(symbol)
         index_price = self._to_decimal(ticker.get("indexPrice"))
-        return (index_price, timestamp)
+        return (timestamp, index_price)
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
         window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=1)
@@ -316,12 +316,12 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def _parse_snapshot_from_kline(
         self, raw: Sequence[Any], *, endpoint_name: str
-    ) -> tuple[Decimal, int]:
+    ) -> tuple[int, Decimal]:
         if len(raw) < 5:
             raise MarketDataError(f"Unexpected Bitget {endpoint_name} kline payload structure")
         close_price = self._to_decimal(raw[4])
         timestamp = int(raw[0])
-        return (close_price, timestamp)
+        return (timestamp, close_price)
 
     def _parse_funding_point(self, raw: Any) -> USDTPerpFundingRatePoint:
         if not isinstance(raw, dict):

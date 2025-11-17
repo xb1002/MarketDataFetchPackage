@@ -140,10 +140,12 @@ def test_get_funding_rate_history_live(provider: ProviderContext) -> None:
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_price_live(provider: ProviderContext) -> None:
-    price, ts = _call_or_skip(provider, lambda: provider.source.get_latest_price(provider.case.symbol))
+    ts, price = _call_or_skip(
+        provider, lambda: provider.source.get_latest_price(provider.case.symbol)
+    )
 
-    assert isinstance(price, Decimal)
     assert isinstance(ts, int)
+    assert isinstance(price, Decimal)
 
 
 @pytest.mark.network
@@ -161,19 +163,23 @@ def test_get_latest_mark_price_live(provider: ProviderContext) -> None:
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_index_price_live(provider: ProviderContext) -> None:
-    value, ts = _call_or_skip(provider, lambda: provider.source.get_latest_index_price(provider.case.symbol))
+    ts, value = _call_or_skip(
+        provider, lambda: provider.source.get_latest_index_price(provider.case.symbol)
+    )
 
-    assert isinstance(value, Decimal)
     assert isinstance(ts, int)
+    assert isinstance(value, Decimal)
 
 
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_premium_index_live(provider: ProviderContext) -> None:
-    value, ts = _call_or_skip(provider, lambda: provider.source.get_latest_premium_index(provider.case.symbol))
+    ts, value = _call_or_skip(
+        provider, lambda: provider.source.get_latest_premium_index(provider.case.symbol)
+    )
 
-    assert isinstance(value, Decimal)
     assert isinstance(ts, int)
+    assert isinstance(value, Decimal)
 
 
 @pytest.mark.network

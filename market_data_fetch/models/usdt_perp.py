@@ -20,14 +20,14 @@ USDTPerpMarkPrice: TypeAlias = tuple[Decimal, Decimal, Decimal, int]
 # ``(timestamp_ms, open_interest_value)``
 USDTPerpOpenInterest: TypeAlias = tuple[int, Decimal]
 
-# ``(last_price, timestamp_ms)``
-USDTPerpPriceTicker: TypeAlias = tuple[Decimal, int]
+# ``(timestamp_ms, last_price)``
+USDTPerpPriceTicker: TypeAlias = tuple[int, Decimal]
 
-# ``(index_price, timestamp_ms)``
-USDTPerpIndexPricePoint: TypeAlias = tuple[Decimal, int]
+# ``(timestamp_ms, index_price)``
+USDTPerpIndexPricePoint: TypeAlias = tuple[int, Decimal]
 
-# ``(premium_index_value, timestamp_ms)``
-USDTPerpPremiumIndexPoint: TypeAlias = tuple[Decimal, int]
+# ``(timestamp_ms, premium_index_value)``
+USDTPerpPremiumIndexPoint: TypeAlias = tuple[int, Decimal]
 
 # ``(symbol, base_asset, quote_asset, tick_size, step_size, min_qty, max_qty, status)``
 USDTPerpInstrument: TypeAlias = tuple[

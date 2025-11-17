@@ -15,7 +15,7 @@ symbol = Symbol("BTC", "USDT")
 window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=200)
 
 klines = client.get_price_klines(Exchange.BINANCE, window)
-last_price, price_ts = client.get_latest_price(Exchange.BINANCE, symbol)  # 成交价
+price_ts, last_price = client.get_latest_price(Exchange.BINANCE, symbol)  # 成交价
 mark_price = client.get_latest_mark_price(Exchange.BINANCE, symbol)  # 标记价格 tuple
 
 # K 线返回 List[Tuple]，顺序为 (open_time_ms, open, high, low, close, volume)
@@ -23,8 +23,8 @@ open_time_ms, open_price, *_ = klines[0]
 
 # 其他返回结构：
 # - Funding 历史/最新值: (funding_time_ms, funding_rate)
-# - Index price 最新值: (index_price, timestamp_ms)
-# - Premium index 最新值: (premium_index_value, timestamp_ms)
+# - Index price 最新值: (timestamp_ms, index_price)
+# - Premium index 最新值: (timestamp_ms, premium_index_value)
 # - Mark price 快照: (mark_price, index_price, last_funding_rate, next_funding_time_ms)
 # - Open interest: (timestamp_ms, value)
 ```

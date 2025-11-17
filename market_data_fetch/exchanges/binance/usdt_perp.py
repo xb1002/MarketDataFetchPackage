@@ -137,7 +137,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
     # Latest snapshots
     def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
         payload = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
-        return (Decimal(payload["lastPrice"]), int(payload["closeTime"]))
+        return (int(payload["closeTime"]), Decimal(payload["lastPrice"]))
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         payload = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
@@ -282,14 +282,14 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def _parse_snapshot_from_kline(
         self, raw: Sequence[Any], *, endpoint_name: str
-    ) -> tuple[Decimal, int]:
+    ) -> tuple[int, Decimal]:
         if len(raw) < 5:
             raise MarketDataError(
                 f"Unexpected Binance {endpoint_name} kline payload structure"
             )
         close_price = Decimal(str(raw[4]))
         timestamp = int(raw[6]) if len(raw) > 6 else int(raw[0])
-        return (close_price, timestamp)
+        return (timestamp, close_price)
 
     def _extract_message(self, payload: Any) -> str | None:
         if isinstance(payload, dict):

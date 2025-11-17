@@ -129,7 +129,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         ticker, server_time = self._fetch_ticker(symbol)
         price = self._to_decimal(ticker.get("lastPrice"))
         timestamp = self._infer_timestamp(ticker, server_time)
-        return (price, timestamp)
+        return (timestamp, price)
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         ticker, _ = self._fetch_ticker(symbol)
@@ -143,7 +143,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         ticker, server_time = self._fetch_ticker(symbol)
         index_price = self._to_decimal(ticker.get("indexPrice"))
         timestamp = self._infer_timestamp(ticker, server_time)
-        return (index_price, timestamp)
+        return (timestamp, index_price)
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
         # The dedicated premium index snapshot endpoint frequently returns HTTP
@@ -159,7 +159,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         latest = self._parse_kline(data[0])
         # close price reflects the latest premium index value and open_time is
         # the corresponding timestamp.
-        return (latest[4], latest[0])
+        return (latest[0], latest[4])
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         window = FundingRateWindow(symbol=symbol, limit=1)
