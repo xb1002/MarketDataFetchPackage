@@ -65,4 +65,5 @@ symbol = Symbol("BTC", "USDT")
 mark_price, index_price, funding_rate, next_funding = client.get_latest_mark_price(Exchange.BITGET, symbol)
 ```
 
-Bitget 尚未在公开 REST 接口中提供溢价指数（历史/最新）数据，因此调用 `get_premium_index_klines` 或 `get_latest_premium_index` 会抛出 `MarketDataError`，提示该能力暂不可用。
+Bitget 通过 `/api/mix/v1/market/candles` 配合 `kLineType=premium` 参数提供溢价指数（历史/最新）数据，详见 [官方文档](https://www.bitget.com/api-doc/uta/public/Instruments)。
+因此 `get_premium_index_klines` 与 `get_latest_premium_index` 会直接消费该端点，返回与 Binance、Bybit 相同的 tuple 结构。

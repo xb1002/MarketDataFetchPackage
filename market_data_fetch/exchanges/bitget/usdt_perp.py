@@ -34,6 +34,7 @@ PRODUCT_SUFFIX = "_UMCBL"
 DEFAULT_TIMEOUT = 10.0
 KLINE_MAX_LIMIT = 1000
 FUNDING_MAX_LIMIT = 100
+PREMIUM_KLINE_TYPE = "premium"
 
 INTERVAL_MAP: dict[Interval, str] = {
     Interval.MINUTE_1: "1m",
@@ -102,7 +103,12 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         return [self._parse_kline(row) for row in entries]
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
-        raise MarketDataError("Bitget does not expose premium index klines via public API")
+        entries = self._fetch_kline_series(
+            query,
+            endpoint_name="premium index klines",
+            kline_type=PREMIUM_KLINE_TYPE,
+        )
+        return [self._parse_kline(row) for row in entries]
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         params = self._funding_params(query)
@@ -135,7 +141,16 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (index_price, timestamp)
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
-        raise MarketDataError("Bitget does not expose a premium index snapshot via public API")
+        window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=1)
+        entries = self._fetch_kline_series(
+            window,
+            endpoint_name="premium index klines",
+            kline_type=PREMIUM_KLINE_TYPE,
+            limit_override=1,
+        )
+        if not entries:
+            raise MarketDataError("Bitget returned empty premium index klines payload")
+        return self._parse_snapshot_from_kline(entries[0], endpoint_name="premium index")
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         window = FundingRateWindow(symbol=symbol, limit=1)
@@ -270,6 +285,15 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         close = self._to_decimal(raw[4])
         volume = self._to_decimal(raw[5])
         return (open_time, open_price, high, low, close, volume)
+
+    def _parse_snapshot_from_kline(
+        self, raw: Sequence[Any], *, endpoint_name: str
+    ) -> tuple[Decimal, int]:
+        if len(raw) < 5:
+            raise MarketDataError(f"Unexpected Bitget {endpoint_name} kline payload structure")
+        close_price = self._to_decimal(raw[4])
+        timestamp = int(raw[0])
+        return (close_price, timestamp)
 
     def _parse_funding_point(self, raw: Any) -> USDTPerpFundingRatePoint:
         if not isinstance(raw, dict):
