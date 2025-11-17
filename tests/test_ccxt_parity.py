@@ -50,15 +50,6 @@ class CCXTProviderCase:
         return dict(base)
 
 
-BITGET_PARAMS = {
-    "price": {"uta": True, "productType": "umcbl"},
-    "index": {"uta": True, "productType": "umcbl"},
-    "mark": {"uta": True, "productType": "umcbl"},
-    "premium": {"uta": True, "productType": "umcbl"},
-    "funding": {"uta": True, "productType": "umcbl"},
-    "open_interest": {"uta": True, "productType": "umcbl"},
-}
-
 CCXT_CASES: tuple[CCXTProviderCase, ...] = (
     CCXTProviderCase(
         name="binance",
@@ -84,7 +75,6 @@ CCXT_CASES: tuple[CCXTProviderCase, ...] = (
         ccxt_id="bitget",
         ccxt_symbol="BTC/USDT:USDT",
         ccxt_options={"options": {"defaultType": "swap"}},
-        params=BITGET_PARAMS,
         supports_premium_series=False,
     ),
 )
