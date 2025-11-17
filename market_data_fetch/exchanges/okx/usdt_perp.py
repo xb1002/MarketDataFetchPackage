@@ -337,10 +337,23 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         start_time: datetime | None,
         end_time: datetime | None,
     ) -> None:
+        """Attach OKX-specific before/after filters.
+
+        OKX uses a somewhat counter-intuitive pagination contract:
+        * ``after`` returns candles **older** than the supplied timestamp.
+        * ``before`` returns candles **newer** than the supplied timestamp.
+
+        ``HistoricalWindow`` follows the conventional semantics where
+        ``start_time`` is the *oldest* bound and ``end_time`` is the *newest*
+        bound. To keep the public interface consistent across exchanges we
+        map the parameters so callers can continue to supply either (or both)
+        timestamps without worrying about OKX's inverted behaviour.
+        """
+
         if start_time:
-            params["after"] = str(_datetime_to_ms(start_time))
+            params["before"] = str(_datetime_to_ms(start_time))
         if end_time:
-            params["before"] = str(_datetime_to_ms(end_time))
+            params["after"] = str(_datetime_to_ms(end_time))
 
     def _enforce_limit(self, requested: int, max_limit: int, *, endpoint_name: str) -> int:
         if requested > max_limit:
