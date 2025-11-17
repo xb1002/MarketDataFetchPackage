@@ -35,6 +35,7 @@ TICKERS_ENDPOINT = "/v5/market/tickers"
 PREMIUM_INDEX_ENDPOINT = "/v5/market/premium-index-price"
 INSTRUMENTS_ENDPOINT = "/v5/market/instruments-info"
 OPEN_INTEREST_INTERVAL = "5min"
+OPEN_INTEREST_BUCKET_MS = 600_000
 DEFAULT_TIMEOUT = 10.0
 PRICE_KLINES_MAX_LIMIT = 1000
 INDEX_KLINES_MAX_LIMIT = 1000
@@ -174,6 +175,8 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         # freshest market data (which is also what CCXT exposes).
         ticker, server_time = self._fetch_ticker(symbol)
         timestamp = self._infer_timestamp(ticker, server_time)
+        if timestamp:
+            timestamp -= timestamp % OPEN_INTEREST_BUCKET_MS
         value = ticker.get("openInterestValue") or ticker.get("openInterest")
         open_interest = self._to_decimal(value)
         return (timestamp, open_interest)
