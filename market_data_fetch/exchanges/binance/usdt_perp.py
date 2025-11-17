@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import time
 from decimal import Decimal
 from typing import Any, Sequence
 
@@ -149,26 +150,22 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         )
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
-        params = {
-            "pair": symbol.pair,
-            "interval": Interval.MINUTE_1.value,
-            "limit": 1,
-        }
-        payload = self._request(INDEX_KLINES_ENDPOINT, params)
-        if not payload:
-            raise MarketDataError("Binance returned empty index kline payload")
-        return self._parse_snapshot_from_kline(payload[0], endpoint_name="index price")
+        raw = self._latest_closed_kline(
+            INDEX_KLINES_ENDPOINT,
+            symbol,
+            key="pair",
+            endpoint_name="index price",
+        )
+        return self._parse_snapshot_from_kline(raw, endpoint_name="index price")
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
-        params = {
-            "symbol": symbol.pair,
-            "interval": Interval.MINUTE_1.value,
-            "limit": 1,
-        }
-        payload = self._request(PREMIUM_KLINES_ENDPOINT, params)
-        if not payload:
-            raise MarketDataError("Binance returned empty premium index payload")
-        return self._parse_snapshot_from_kline(payload[0], endpoint_name="premium index")
+        raw = self._latest_closed_kline(
+            PREMIUM_KLINES_ENDPOINT,
+            symbol,
+            key="symbol",
+            endpoint_name="premium index",
+        )
+        return self._parse_snapshot_from_kline(raw, endpoint_name="premium index")
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         payload = self._request(
@@ -290,6 +287,36 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         close_price = Decimal(str(raw[4]))
         timestamp = int(raw[6]) if len(raw) > 6 else int(raw[0])
         return (timestamp, close_price)
+
+    def _latest_closed_kline(
+        self,
+        endpoint: str,
+        symbol: Symbol,
+        *,
+        key: str,
+        endpoint_name: str,
+    ) -> Sequence[Any]:
+        params = {
+            key: symbol.pair,
+            "interval": Interval.MINUTE_1.value,
+            "limit": 2,
+        }
+        payload = self._request(endpoint, params)
+        if not payload:
+            raise MarketDataError(f"Binance returned empty {endpoint_name} payload")
+        candidate = payload[-1]
+        close_time = self._extract_close_time(candidate)
+        now = int(time.time() * 1000)
+        if close_time > now and len(payload) > 1:
+            candidate = payload[-2]
+        return candidate
+
+    def _extract_close_time(self, raw: Sequence[Any]) -> int:
+        if len(raw) > 6:
+            return int(raw[6])
+        # close time is not present on the premium index feed; infer it from the
+        # open timestamp plus the one-minute interval length.
+        return int(raw[0]) + 60_000
 
     def _extract_message(self, payload: Any) -> str | None:
         if isinstance(payload, dict):

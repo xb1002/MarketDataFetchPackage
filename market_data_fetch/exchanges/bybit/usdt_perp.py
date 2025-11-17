@@ -177,7 +177,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         timestamp = self._infer_timestamp(ticker, server_time)
         if timestamp:
             timestamp -= timestamp % OPEN_INTEREST_BUCKET_MS
-        value = ticker.get("openInterestValue") or ticker.get("openInterest")
+        value = ticker.get("openInterest") or ticker.get("openInterestValue")
         open_interest = self._to_decimal(value)
         return (timestamp, open_interest)
 
