@@ -90,3 +90,8 @@ class USDTPerpMarketDataSource(Protocol):
    - 在 README 与 API 文档中列出接口方法及参数说明。
 
 通过上述接口与计划，可在专注 U 本位合约的同时，为未来的币本位和杠杆模块提供一致的扩展点。
+
+## 交易所实现进度
+
+- **Binance**：已落地全部 U 本位接口，使用官方 Futures REST API (`/fapi/v1/*`)，并在 tests 中连通 testnet 覆盖所有方法。
+- **Bybit**：新增 `BybitUSDTPerpDataSource`，覆盖 `/v5/market/kline`、`/v5/market/index-price-kline`、`/v5/market/mark-price-kline`、`/v5/market/premium-index-price-kline`、`/v5/market/funding/history`、`/v5/market/tickers`、`/v5/market/premium-index-price` 与 `/v5/market/open-interest`。同时提供 live 测试（遇到 CloudFront 403 会自动以 `ExchangeTransientError` 跳过），保证接口契约在真实网络环境下验证。

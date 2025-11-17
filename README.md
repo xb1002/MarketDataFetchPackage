@@ -30,3 +30,22 @@ open_time_ms, open_price, *_ = klines[0]
 ```
 
 示例中演示了如何下载历史 K 线以及分别获取最新成交价与最新 Mark Price。其他如指数 K 线、标记价格 K 线、溢价指数、资金费率历史与未平仓量均通过同一个 `MarketDataClient` 入口暴露。
+
+## Bybit U 本位合约示例
+
+Bybit 的实现位于 `market_data_fetch.exchanges.bybit` 模块。导入后同样会自动注册数据源：
+
+```python
+import market_data_fetch.exchanges.bybit  # 注册 Bybit 数据源
+
+from market_data_fetch import Exchange, MarketDataClient, Symbol
+
+client = MarketDataClient()
+symbol = Symbol("ETH", "USDT")
+
+latest_mark_price = client.get_latest_mark_price(Exchange.BYBIT, symbol)
+premium_index = client.get_latest_premium_index(Exchange.BYBIT, symbol)
+open_interest = client.get_open_interest(Exchange.BYBIT, symbol)
+```
+
+由于 tuple 型返回结构保持一致，切换到 Bybit 仅需调整 `exchange` 枚举即可。
