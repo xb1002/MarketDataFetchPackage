@@ -144,13 +144,20 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (index_price, timestamp)
 
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
-        params = {"category": CATEGORY, "symbol": symbol.pair}
-        payload = self._request(PREMIUM_INDEX_ENDPOINT, params)
-        entries = self._extract_list(payload, endpoint_name="premium index snapshot")
-        entry = entries[0]
-        value = self._to_decimal(entry.get("basisRate") or entry.get("basis"))
-        timestamp = int(entry.get("timestamp") or payload.get("time") or 0)
-        return (value, timestamp)
+        # The dedicated premium index snapshot endpoint frequently returns HTTP
+        # 4xx/5xx outside of approved regions. Fall back to the kline feed with
+        # a single-entry request which is globally available.
+        window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=1)
+        data = self._fetch_kline_series(
+            PREMIUM_INDEX_KLINES_ENDPOINT,
+            window,
+            max_limit=PREMIUM_INDEX_KLINES_MAX_LIMIT,
+            endpoint_name="premium index klines",
+        )
+        latest = self._parse_kline(data[0])
+        # close price reflects the latest premium index value and open_time is
+        # the corresponding timestamp.
+        return (latest[4], latest[0])
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
         window = FundingRateWindow(symbol=symbol, limit=1)
