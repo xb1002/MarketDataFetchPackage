@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Sequence
 
 import ccxt
@@ -237,6 +237,11 @@ def _assert_kline_series(
     label: str,
 ) -> None:
     overlaps = _match_on_timestamp(ours, ccxt_series, context=label)
+    overlaps = sorted(overlaps, key=lambda row: row[0][0])
+    if len(overlaps) > 1:
+        # The newest candle can still be forming between the provider and CCXT
+        # requests, so drop it and compare only fully-settled entries.
+        overlaps = overlaps[:-1]
     for ours_row, ccxt_row in overlaps:
         for idx, rel_tol in zip(range(1, 5), [PRICE_REL_TOL] * 4, strict=True):
             _assert_decimal_close(
@@ -251,6 +256,87 @@ def _assert_kline_series(
             rel=VOLUME_REL_TOL,
             context=f"{context.case.name} {label} volume",
         )
+
+
+def _maybe_decimal(value: Any) -> Decimal | None:
+    if value is None or value == "":
+        return None
+    try:
+        return Decimal(str(value))
+    except (ArithmeticError, ValueError, InvalidOperation):
+        return None
+
+
+def _precision_to_increment(value: Any) -> Decimal | None:
+    maybe = _maybe_decimal(value)
+    if maybe is None or maybe == 0:
+        return None
+    if maybe < 1:
+        return maybe
+    return Decimal("1").scaleb(-int(maybe))
+
+
+def _extract_filter_value(filters: Any, filter_type: str, key: str) -> Any:
+    if isinstance(filters, Sequence):
+        for entry in filters:
+            if isinstance(entry, dict) and entry.get("filterType") == filter_type:
+                return entry.get(key)
+    return None
+
+
+def _expected_tick_size(market: dict[str, Any]) -> Decimal | None:
+    info = market.get("info")
+    if isinstance(info, dict):
+        tick = (
+            _maybe_decimal(info.get("priceTick"))
+            or _maybe_decimal(info.get("tickSize"))
+        )
+        if tick is None:
+            price_filter = info.get("priceFilter")
+            if isinstance(price_filter, dict):
+                tick = _maybe_decimal(price_filter.get("tickSize"))
+        if tick is None:
+            filters = info.get("filters")
+            tick = _maybe_decimal(
+                _extract_filter_value(filters, "PRICE_FILTER", "tickSize")
+            )
+        if tick is None:
+            tick = _precision_to_increment(info.get("pricePrecision"))
+        if tick is not None:
+            return tick
+    precision = market.get("precision")
+    if isinstance(precision, dict):
+        tick = _precision_to_increment(precision.get("price"))
+        if tick is not None:
+            return tick
+    return None
+
+
+def _expected_step_size(market: dict[str, Any]) -> Decimal | None:
+    info = market.get("info")
+    if isinstance(info, dict):
+        lot_filter = info.get("lotSizeFilter")
+        step = (
+            _maybe_decimal(info.get("sizeIncrement"))
+            or _maybe_decimal(info.get("quantityStep"))
+        )
+        if step is None and isinstance(lot_filter, dict):
+            step = _maybe_decimal(lot_filter.get("qtyStep") or lot_filter.get("step"))
+        if step is None:
+            filters = info.get("filters")
+            step = _maybe_decimal(
+                _extract_filter_value(filters, "LOT_SIZE", "stepSize")
+            )
+        if step is None:
+            step = _precision_to_increment(info.get("quantityPrecision"))
+        if step is not None:
+            return step
+    precision = market.get("precision")
+    if isinstance(precision, dict):
+        step = _precision_to_increment(precision.get("amount"))
+        if step is not None:
+            return step
+    return None
 
 
 @pytest.mark.network
@@ -525,21 +611,18 @@ def test_instrument_metadata_matches_ccxt(parity_provider: CCXTProviderContext) 
     market = parity_provider.ccxt.market(parity_provider.case.ccxt_symbol)
     assert ours["base_asset"] == market["base"]
     assert ours["quote_asset"] == market["quote"]
-    precision = market.get("precision", {})
-    tick_prec = precision.get("price")
-    if tick_prec is not None:
-        ccxt_tick = Decimal("1").scaleb(-int(tick_prec))
+    tick_size = _expected_tick_size(market)
+    if tick_size is not None:
         _assert_decimal_close(
             ours["tick_size"],
-            ccxt_tick,
+            tick_size,
             context="instrument tick size",
         )
-    amt_prec = precision.get("amount")
-    if amt_prec is not None:
-        ccxt_step = Decimal("1").scaleb(-int(amt_prec))
+    step_size = _expected_step_size(market)
+    if step_size is not None:
         _assert_decimal_close(
             ours["step_size"],
-            ccxt_step,
+            step_size,
             context="instrument step size",
         )
     limits = market.get("limits", {})

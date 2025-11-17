@@ -33,7 +33,6 @@ PREMIUM_INDEX_KLINES_ENDPOINT = "/v5/market/premium-index-price-kline"
 FUNDING_HISTORY_ENDPOINT = "/v5/market/funding/history"
 TICKERS_ENDPOINT = "/v5/market/tickers"
 PREMIUM_INDEX_ENDPOINT = "/v5/market/premium-index-price"
-OPEN_INTEREST_ENDPOINT = "/v5/market/open-interest"
 INSTRUMENTS_ENDPOINT = "/v5/market/instruments-info"
 OPEN_INTEREST_INTERVAL = "5min"
 DEFAULT_TIMEOUT = 10.0
@@ -169,17 +168,14 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         return history[0]
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
-        params = {
-            "category": CATEGORY,
-            "symbol": symbol.pair,
-            "intervalTime": OPEN_INTEREST_INTERVAL,
-            "limit": 1,
-        }
-        payload = self._request(OPEN_INTEREST_ENDPOINT, params)
-        entries = self._extract_list(payload, endpoint_name="open interest")
-        entry = entries[0]
-        timestamp = int(entry.get("timestamp") or payload.get("time") or 0)
-        open_interest = self._to_decimal(entry.get("openInterest"))
+        # Bybit's dedicated open-interest endpoint can trail the latest ticker
+        # reading by tens of minutes depending on the configured bucket size.
+        # Reuse the ticker snapshot instead so the timestamp lines up with the
+        # freshest market data (which is also what CCXT exposes).
+        ticker, server_time = self._fetch_ticker(symbol)
+        timestamp = self._infer_timestamp(ticker, server_time)
+        value = ticker.get("openInterestValue") or ticker.get("openInterest")
+        open_interest = self._to_decimal(value)
         return (timestamp, open_interest)
 
     def get_instruments(self) -> Sequence[USDTPerpInstrument]:
