@@ -28,3 +28,15 @@ USDTPerpIndexPricePoint: TypeAlias = tuple[Decimal, int]
 
 # ``(premium_index_value, timestamp_ms)``
 USDTPerpPremiumIndexPoint: TypeAlias = tuple[Decimal, int]
+
+# ``(symbol, base_asset, quote_asset, tick_size, step_size, min_qty, max_qty, status)``
+USDTPerpInstrument: TypeAlias = tuple[
+    str,
+    str,
+    str,
+    Decimal,
+    Decimal,
+    Decimal,
+    Decimal,
+    str,
+]

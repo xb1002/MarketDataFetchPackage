@@ -16,6 +16,7 @@ from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
+    USDTPerpInstrument,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
@@ -33,6 +34,7 @@ FUNDING_HISTORY_ENDPOINT = "/v5/market/funding/history"
 TICKERS_ENDPOINT = "/v5/market/tickers"
 PREMIUM_INDEX_ENDPOINT = "/v5/market/premium-index-price"
 OPEN_INTEREST_ENDPOINT = "/v5/market/open-interest"
+INSTRUMENTS_ENDPOINT = "/v5/market/instruments-info"
 OPEN_INTEREST_INTERVAL = "5min"
 DEFAULT_TIMEOUT = 10.0
 PRICE_KLINES_MAX_LIMIT = 1000
@@ -180,6 +182,11 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         open_interest = self._to_decimal(entry.get("openInterest"))
         return (timestamp, open_interest)
 
+    def get_instruments(self) -> Sequence[USDTPerpInstrument]:
+        payload = self._request(INSTRUMENTS_ENDPOINT, {"category": CATEGORY})
+        entries = self._extract_list(payload, endpoint_name="instruments")
+        return [self._parse_instrument(entry) for entry in entries]
+
     # ------------------------------------------------------------------
     # Internal helpers
     def close(self) -> None:
@@ -276,6 +283,19 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         timestamp = int(raw.get("fundingRateTimestamp") or raw.get("timestamp") or 0)
         rate = self._to_decimal(raw.get("fundingRate"))
         return (timestamp, rate)
+
+    def _parse_instrument(self, raw: dict[str, Any]) -> USDTPerpInstrument:
+        symbol = raw.get("symbol")
+        base_coin = raw.get("baseCoin") or ""
+        quote_coin = raw.get("quoteCoin") or ""
+        status = raw.get("status") or ""
+        price_filter = raw.get("priceFilter") or {}
+        lot_filter = raw.get("lotSizeFilter") or {}
+        tick_size = self._to_decimal(price_filter.get("tickSize"))
+        step_size = self._to_decimal(lot_filter.get("qtyStep"))
+        min_qty = self._to_decimal(lot_filter.get("minOrderQty"))
+        max_qty = self._to_decimal(lot_filter.get("maxOrderQty"))
+        return (symbol, base_coin, quote_coin, tick_size, step_size, min_qty, max_qty, status)
 
     def _infer_timestamp(self, ticker: dict[str, Any], server_time: int) -> int:
         candidate = ticker.get("timestamp") or ticker.get("ts")

@@ -21,6 +21,7 @@ from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
+    USDTPerpInstrument,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
@@ -37,6 +38,7 @@ FUNDING_HISTORY_ENDPOINT = "/fapi/v1/fundingRate"
 PREMIUM_INDEX_ENDPOINT = "/fapi/v1/premiumIndex"
 TICKER_24H_ENDPOINT = "/fapi/v1/ticker/24hr"
 OPEN_INTEREST_ENDPOINT = "/fapi/v1/openInterest"
+EXCHANGE_INFO_ENDPOINT = "/fapi/v1/exchangeInfo"
 DEFAULT_TIMEOUT = 10.0
 # Binance Futures REST API limits documented at
 # https://binance-docs.github.io/apidocs/futures/en/#change-log
@@ -181,6 +183,22 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         payload = self._request(OPEN_INTEREST_ENDPOINT, {"symbol": symbol.pair})
         return (int(payload["time"]), Decimal(payload["openInterest"]))
 
+    def get_instruments(self) -> Sequence[USDTPerpInstrument]:
+        payload = self._request(EXCHANGE_INFO_ENDPOINT, {})
+        symbols = payload.get("symbols")
+        if not isinstance(symbols, Sequence) or not symbols:
+            raise MarketDataError("Binance returned empty exchange info payload")
+        instruments: list[USDTPerpInstrument] = []
+        for entry in symbols:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("contractType") != "PERPETUAL":
+                continue
+            instruments.append(self._parse_instrument(entry))
+        if not instruments:
+            raise MarketDataError("Binance did not return any USDT perpetual instruments")
+        return instruments
+
     # ------------------------------------------------------------------
     # Internal helpers
     def close(self) -> None:
@@ -279,6 +297,27 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
             if isinstance(msg, str):
                 return msg
         return None
+
+    def _parse_instrument(self, raw: dict[str, Any]) -> USDTPerpInstrument:
+        symbol = raw.get("symbol")
+        base_asset = raw.get("baseAsset") or ""
+        quote_asset = raw.get("quoteAsset") or ""
+        status = raw.get("status") or ""
+        price_filter = self._find_filter(raw, "PRICE_FILTER")
+        lot_filter = self._find_filter(raw, "LOT_SIZE")
+        tick_size = Decimal(price_filter.get("tickSize", "0"))
+        step_size = Decimal(lot_filter.get("stepSize", "0"))
+        min_qty = Decimal(lot_filter.get("minQty", "0"))
+        max_qty = Decimal(lot_filter.get("maxQty", "0"))
+        return (symbol, base_asset, quote_asset, tick_size, step_size, min_qty, max_qty, status)
+
+    def _find_filter(self, raw: dict[str, Any], filter_type: str) -> dict[str, Any]:
+        filters = raw.get("filters")
+        if isinstance(filters, Sequence):
+            for flt in filters:
+                if isinstance(flt, dict) and flt.get("filterType") == filter_type:
+                    return flt
+        raise MarketDataError(f"Binance instrument missing {filter_type} filter")
 
 
 def _to_milliseconds(value: datetime) -> int:

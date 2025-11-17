@@ -9,6 +9,7 @@ from ...models.shared import Exchange, Symbol
 from ...models.usdt_perp import (
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
+    USDTPerpInstrument,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
@@ -57,3 +58,7 @@ class USDTPerpMarketDataSource(Protocol):
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         """Return the current open interest value for the requested symbol."""
+
+    # Instruments -------------------------------------------------------
+    def get_instruments(self) -> Sequence[USDTPerpInstrument]:
+        """Return contract metadata for all tradable USDT-perpetual symbols."""

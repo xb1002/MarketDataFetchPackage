@@ -13,6 +13,7 @@ from .models.shared import Exchange, Interval, Symbol
 from .models.usdt_perp import (
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
+    USDTPerpInstrument,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
@@ -30,6 +31,7 @@ __all__ = [
     "Symbol",
     "USDTPerpFundingRatePoint",
     "USDTPerpIndexPricePoint",
+    "USDTPerpInstrument",
     "USDTPerpKline",
     "USDTPerpMarkPrice",
     "USDTPerpOpenInterest",

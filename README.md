@@ -72,3 +72,25 @@ Bitget 集成现已全面切换到 UTA 的 V3 行情接口：
 - `/api/v3/market/tickers`、`/api/v3/market/open-interest` 则返回最新成交价、Mark Price、指数价与未平仓量。
 
 因此 `get_*_klines`、`get_latest_mark_price`、`get_latest_premium_index` 等方法都直接消费上述官方端点，输出与 Binance、Bybit 相同的 tuple 结构。
+
+## 合约（Instrument）信息
+
+三家交易所均实现了 `get_instruments` 接口，可通过 `MarketDataClient` 统一获取：
+
+```python
+from market_data_fetch import Exchange, MarketDataClient
+
+client = MarketDataClient()
+
+instruments = client.get_instruments(Exchange.BINANCE)
+symbol, base, quote, tick_size, step_size, min_qty, max_qty, status = instruments[0]
+```
+
+返回结构同样是 tuple，以便在批量存储/序列化场景中保持较低的内存占用：
+
+- `symbol`：交易所合约符号（如 `BTCUSDT`）。
+- `base`/`quote`：基础币与计价币。
+- `tick_size`：价格精度（最小价格变动）。
+- `step_size`：数量精度（下单步长）。
+- `min_qty`/`max_qty`：合约允许的下单数量区间。
+- `status`：交易所原始状态字符串（如 `TRADING`、`online` 等）。

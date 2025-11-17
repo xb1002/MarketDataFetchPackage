@@ -31,6 +31,7 @@ USDTPerpOpenInterest = tuple[int, Decimal]
 USDTPerpPriceTicker = tuple[Decimal, int]
 USDTPerpIndexPricePoint = tuple[Decimal, int]
 USDTPerpPremiumIndexPoint = tuple[Decimal, int]
+USDTPerpInstrument = tuple[str, str, str, Decimal, Decimal, Decimal, Decimal, str]
 ```
 
 ## 查询对象
@@ -65,10 +66,12 @@ class USDTPerpMarketDataSource(Protocol):
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint: ...
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint: ...
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest: ...
+    def get_instruments(self) -> Sequence[USDTPerpInstrument]: ...
 ```
 - 最新价格/指数/溢价指数均复用轻量 tuple 表达，指数类仅包含“数值+时间戳”而非 K 线结构。
 - 通过统一的 `USDTPerpKline`，避免三类 K 线重复字段定义。
 - `get_open_interest` 仅返回最新未平仓量；未来若需历史序列，可在协议中新增 `get_open_interest_history`，保持对现有实现向后兼容。
+- `get_instruments` 统一暴露合约精度、下单限制与状态，方便对不同交易所做一致性校验。
 
 ## 错误处理契约
 - 所有方法抛出 `MarketDataError` 子类：
@@ -95,4 +98,4 @@ class USDTPerpMarketDataSource(Protocol):
 
 - **Binance**：已落地全部 U 本位接口，使用官方 Futures REST API (`/fapi/v1/*`)，并在 tests 中连通 testnet 覆盖所有方法。
 - **Bybit**：新增 `BybitUSDTPerpDataSource`，覆盖 `/v5/market/kline`、`/v5/market/index-price-kline`、`/v5/market/mark-price-kline`、`/v5/market/premium-index-price-kline`、`/v5/market/funding/history`、`/v5/market/tickers`、`/v5/market/premium-index-price` 与 `/v5/market/open-interest`。同时提供 live 测试（遇到 CloudFront 403 会自动以 `ExchangeTransientError` 跳过），保证接口契约在真实网络环境下验证。
-- **Bitget**：新增 `BitgetUSDTPerpDataSource`，全面使用 UTA V3 行情接口：`/api/v3/market/history-candles`（`category=USDT-FUTURES`，`type=MARKET/INDEX/MARK/PREMIUM`）负责所有历史 K 线，`/api/v3/market/history-fund-rate` 与 `/api/v3/market/current-fund-rate` 提供资金费率历史及下一次结算时间，`/api/v3/market/tickers`、`/api/v3/market/open-interest` 则返回最新成交价、标记价、指数价与未平仓量，保证所有数据下载都来自统一账户官方端点。
+- **Bitget**：新增 `BitgetUSDTPerpDataSource`，全面使用 UTA V3 行情接口：`/api/v3/market/history-candles`（`category=USDT-FUTURES`，`type=MARKET/INDEX/MARK/PREMIUM`）负责所有历史 K 线，`/api/v3/market/history-fund-rate` 与 `/api/v3/market/current-fund-rate` 提供资金费率历史及下一次结算时间，`/api/v3/market/tickers`、`/api/v3/market/open-interest` 提供最新成交价、标记价、指数价与未平仓量，`/api/v3/market/instruments` 则返回合约信息，保证所有数据下载都来自统一账户官方端点。

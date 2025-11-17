@@ -194,6 +194,25 @@ def test_get_open_interest_snapshot_live(provider: ProviderContext) -> None:
     assert isinstance(snapshot[1], Decimal)
 
 
+@pytest.mark.network
+@pytest.mark.integration
+def test_get_instruments(provider: ProviderContext) -> None:
+    instruments = _call_or_skip(provider, lambda: provider.source.get_instruments())
+
+    assert len(instruments) > 0
+    target = provider.case.symbol.pair
+    match = next((item for item in instruments if item[0] == target), None)
+    assert match is not None
+    _, base, quote, tick_size, step_size, min_qty, max_qty, status = match
+    assert isinstance(base, str)
+    assert isinstance(quote, str)
+    assert isinstance(tick_size, Decimal)
+    assert isinstance(step_size, Decimal)
+    assert isinstance(min_qty, Decimal)
+    assert isinstance(max_qty, Decimal)
+    assert isinstance(status, str)
+
+
 def test_price_kline_limit_validation(provider: ProviderContext) -> None:
     window = HistoricalWindow(
         symbol=provider.case.symbol,

@@ -9,6 +9,7 @@ from ..models.shared import Exchange, Symbol
 from ..models.usdt_perp import (
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
+    USDTPerpInstrument,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
@@ -93,6 +94,12 @@ class MarketDataClient:
         """Return the latest open interest value."""
 
         return self._get_source(exchange).get_open_interest(symbol)
+
+    # Instruments -------------------------------------------------------
+    def get_instruments(self, exchange: Exchange) -> Sequence[USDTPerpInstrument]:
+        """Return instrument metadata for the selected exchange."""
+
+        return self._get_source(exchange).get_instruments()
 
     # Internal ----------------------------------------------------------
     def _get_source(self, exchange: Exchange) -> USDTPerpMarketDataSource:

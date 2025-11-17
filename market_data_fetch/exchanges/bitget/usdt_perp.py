@@ -16,6 +16,7 @@ from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
+    USDTPerpInstrument,
     USDTPerpKline,
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
@@ -29,6 +30,7 @@ FUNDING_HISTORY_ENDPOINT = "/api/v3/market/history-fund-rate"
 CURRENT_FUNDING_ENDPOINT = "/api/v3/market/current-fund-rate"
 TICKER_ENDPOINT = "/api/v3/market/tickers"
 OPEN_INTEREST_ENDPOINT = "/api/v3/market/open-interest"
+INSTRUMENTS_ENDPOINT = "/api/v3/market/instruments"
 CATEGORY = "USDT-FUTURES"
 DEFAULT_TIMEOUT = 10.0
 KLINE_MAX_LIMIT = 100
@@ -193,6 +195,13 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         amount = self._to_decimal(entry.get("openInterest"))
         return (timestamp, amount)
 
+    def get_instruments(self) -> Sequence[USDTPerpInstrument]:
+        payload = self._request_wrapped(INSTRUMENTS_ENDPOINT, {"category": CATEGORY})
+        data = payload.get("data")
+        if not isinstance(data, Sequence) or not data:
+            raise MarketDataError("Bitget returned empty instruments payload")
+        return [self._parse_instrument(entry) for entry in data]
+
     # ------------------------------------------------------------------
     # Internal helpers
     def close(self) -> None:
@@ -320,6 +329,28 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         timestamp = int(raw.get("fundingRateTimestamp") or 0)
         rate = self._to_decimal(raw.get("fundingRate"))
         return (timestamp, rate)
+
+    def _parse_instrument(self, raw: dict[str, Any]) -> USDTPerpInstrument:
+        symbol = raw.get("symbol")
+        base_coin = raw.get("baseCoin") or ""
+        quote_coin = raw.get("quoteCoin") or ""
+        status = raw.get("status") or ""
+        tick_size = self._derive_precision(raw.get("priceMultiplier"), raw.get("pricePrecision"))
+        step_size = self._derive_precision(raw.get("quantityMultiplier"), raw.get("quantityPrecision"))
+        min_qty = self._to_decimal(raw.get("minOrderQty"))
+        max_qty = self._to_decimal(raw.get("maxOrderQty"))
+        return (symbol, base_coin, quote_coin, tick_size, step_size, min_qty, max_qty, status)
+
+    def _derive_precision(self, multiplier: Any, precision: Any) -> Decimal:
+        value = self._to_decimal(multiplier)
+        if value == 0 and precision not in (None, ""):
+            try:
+                digits = int(precision)
+                if digits >= 0:
+                    return Decimal("1") / (Decimal(10) ** digits)
+            except ValueError:
+                pass
+        return value
 
     def _symbol_pair(self, symbol: Symbol) -> str:
         return symbol.pair
