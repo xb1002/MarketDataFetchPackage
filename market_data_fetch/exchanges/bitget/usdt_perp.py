@@ -226,7 +226,22 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         data = payload.get("data")
         if not isinstance(data, Sequence) or not data:
             raise MarketDataError(f"Bitget returned empty {endpoint_name}")
-        return data
+        entries: list[Sequence[Any]] = list(data)
+        if query.start_time or query.end_time:
+            start_ms = _datetime_to_ms(query.start_time) if query.start_time else None
+            end_ms = _datetime_to_ms(query.end_time) if query.end_time else None
+            filtered: list[Sequence[Any]] = []
+            for row in entries:
+                timestamp = int(row[0]) if row else 0
+                if start_ms and timestamp < start_ms:
+                    continue
+                if end_ms and timestamp > end_ms:
+                    continue
+                filtered.append(row)
+            if not filtered:
+                raise MarketDataError(f"Bitget returned no {endpoint_name} entries within requested window")
+            entries = filtered
+        return entries
 
     def _historical_params(
         self,
