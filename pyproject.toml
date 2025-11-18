@@ -1,0 +1,19 @@
+[project]
+name = "market-data-fetch"
+version = "0.1.0"
+description = "Unified market data fetcher for crypto derivative exchanges"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.32.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.2.0,<9.1.0",
+    "ccxt>=4.5.0,<5.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
