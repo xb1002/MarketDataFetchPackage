@@ -95,3 +95,23 @@ def test_price_klines_with_end_only(provider: ProviderContext) -> None:
     end_ms = _ms(end_time)
     for ts, *_ in klines:
         assert ts <= end_ms
+
+
+@pytest.mark.network
+@pytest.mark.integration
+def test_price_klines_without_explicit_limit(provider: ProviderContext) -> None:
+    now = datetime.now(timezone.utc)
+    end_time = now - timedelta(minutes=20)
+    start_time = end_time - timedelta(minutes=3)
+    window = HistoricalWindow(
+        symbol=provider.case.symbol,
+        interval=Interval.MINUTE_1,
+        start_time=start_time,
+        end_time=end_time,
+    )
+    klines = _call_or_skip(provider, lambda: provider.source.get_price_klines(window))
+    assert klines
+    start_ms = _ms(start_time)
+    end_ms = _ms(end_time)
+    for ts, *_ in klines:
+        assert start_ms <= ts <= end_ms

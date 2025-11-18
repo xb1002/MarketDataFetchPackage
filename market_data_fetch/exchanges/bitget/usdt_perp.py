@@ -10,7 +10,7 @@ import requests
 
 from ...contracts.usdt_perp.interface import USDTPerpMarketDataSource
 from ...core.errors import ExchangeTransientError, IntervalNotSupportedError, MarketDataError
-from ...core.queries import FundingRateWindow, HistoricalWindow
+from ...core.queries import DEFAULT_LIMIT, FundingRateWindow, HistoricalWindow
 from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
@@ -315,6 +315,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def _enforce_limit(self, requested: int, max_limit: int, *, endpoint_name: str) -> int:
         if requested > max_limit:
+            if requested == DEFAULT_LIMIT:
+                return max_limit
             raise ValueError(f"Bitget {endpoint_name} limit cannot exceed {max_limit} entries")
         return requested
 

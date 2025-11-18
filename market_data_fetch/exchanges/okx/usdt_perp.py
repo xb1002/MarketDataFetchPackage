@@ -15,7 +15,7 @@ from ...core.errors import (
     MarketDataError,
     SymbolNotSupportedError,
 )
-from ...core.queries import FundingRateWindow, HistoricalWindow
+from ...core.queries import DEFAULT_LIMIT, FundingRateWindow, HistoricalWindow
 from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
@@ -357,6 +357,8 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     def _enforce_limit(self, requested: int, max_limit: int, *, endpoint_name: str) -> int:
         if requested > max_limit:
+            if requested == DEFAULT_LIMIT:
+                return max_limit
             raise ValueError(f"OKX {endpoint_name} limit cannot exceed {max_limit} entries")
         return requested
 
