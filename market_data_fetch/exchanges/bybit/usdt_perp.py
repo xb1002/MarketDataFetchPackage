@@ -21,7 +21,7 @@ from ...models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 
 BASE_URL = "https://api.bybit.com"
@@ -124,19 +124,21 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         ticker, server_time = self._fetch_ticker(symbol)
-        price = self._to_decimal(ticker.get("lastPrice"))
         timestamp = self._infer_timestamp(ticker, server_time)
-        return (timestamp, price)
+        return {
+            "timestamp": timestamp,
+            "last_price": self._to_decimal(ticker.get("lastPrice")),
+            "bid_price": self._to_decimal(ticker.get("bid1Price")),
+            "ask_price": self._to_decimal(ticker.get("ask1Price")),
+        }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
-        ticker, _ = self._fetch_ticker(symbol)
+        ticker, server_time = self._fetch_ticker(symbol)
+        timestamp = self._infer_timestamp(ticker, server_time)
         mark_price = self._to_decimal(ticker.get("markPrice"))
-        index_price = self._to_decimal(ticker.get("indexPrice"))
-        funding_rate = self._to_decimal(ticker.get("fundingRate"))
-        next_funding_time = int(ticker.get("nextFundingTime") or 0)
-        return (mark_price, index_price, funding_rate, next_funding_time)
+        return (timestamp, mark_price)
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         ticker, server_time = self._fetch_ticker(symbol)
@@ -161,11 +163,10 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (latest[0], latest[4])
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
-        window = FundingRateWindow(symbol=symbol, limit=1)
-        history = self.get_funding_rate_history(window)
-        if not history:
-            raise MarketDataError("Bybit returned empty funding rate history")
-        return history[0]
+        ticker, server_time = self._fetch_ticker(symbol)
+        timestamp = self._infer_timestamp(ticker, server_time)
+        rate = self._to_decimal(ticker.get("fundingRate"))
+        return (timestamp, rate)
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         # Bybit's dedicated open-interest endpoint can trail the latest ticker

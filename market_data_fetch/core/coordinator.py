@@ -14,7 +14,7 @@ from ..models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 from .queries import FundingRateWindow, HistoricalWindow
 from .registry import create_usdt_perp_source
@@ -63,7 +63,7 @@ class MarketDataClient:
         return self._get_source(exchange).get_funding_rate_history(query)
 
     # Latest ------------------------------------------------------------
-    def get_latest_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpPriceTicker:
+    def get_latest_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpTicker:
         """Return the latest traded price snapshot from the underlying source."""
 
         return self._get_source(exchange).get_latest_price(symbol)

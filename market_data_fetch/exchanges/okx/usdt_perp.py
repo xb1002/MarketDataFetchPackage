@@ -26,7 +26,7 @@ from ...models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 
 BASE_URL = "https://www.okx.com"
@@ -141,20 +141,21 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         ticker = self._fetch_ticker(symbol)
-        price = self._to_decimal(ticker.get("last"))
         timestamp = int(ticker.get("ts") or 0)
-        return (timestamp, price)
+        return {
+            "timestamp": timestamp,
+            "last_price": self._to_decimal(ticker.get("last")),
+            "bid_price": self._to_decimal(ticker.get("bidPx")),
+            "ask_price": self._to_decimal(ticker.get("askPx")),
+        }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         mark_entry = self._fetch_mark_snapshot(symbol)
         mark_price = self._to_decimal(mark_entry.get("markPx"))
-        _, index_price = self.get_latest_index_price(symbol)
-        funding_entry = self._fetch_latest_funding(symbol)
-        funding_rate = self._to_decimal(funding_entry.get("fundingRate"))
-        next_funding = int(funding_entry.get("nextFundingTime") or funding_entry.get("fundingTime") or 0)
-        return (mark_price, index_price, funding_rate, next_funding)
+        timestamp = int(mark_entry.get("ts") or 0)
+        return (timestamp, mark_price)
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         entry = self._fetch_index_ticker(symbol)
@@ -173,7 +174,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         return (timestamp, close)
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
-        entry = self._fetch_recent_funding(symbol)
+        entry = self._fetch_latest_funding(symbol)
         timestamp = int(entry.get("fundingTime") or entry.get("ts") or 0)
         rate = self._to_decimal(entry.get("fundingRate"))
         return (timestamp, rate)

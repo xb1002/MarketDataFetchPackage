@@ -26,9 +26,14 @@ class Symbol:
 # Tuple 布局全部以毫秒时间戳+ Decimal 描述，避免 dataclass 带来的额外开销。
 USDTPerpKline = tuple[int, Decimal, Decimal, Decimal, Decimal, Decimal]
 USDTPerpFundingRatePoint = tuple[int, Decimal]
-USDTPerpMarkPrice = tuple[Decimal, Decimal, Decimal, int]
+USDTPerpMarkPrice = tuple[int, Decimal]
 USDTPerpOpenInterest = tuple[int, Decimal]
-USDTPerpPriceTicker = tuple[int, Decimal]
+
+class USDTPerpTicker(TypedDict):
+    timestamp: int
+    last_price: Decimal
+    bid_price: Decimal
+    ask_price: Decimal
 USDTPerpIndexPricePoint = tuple[int, Decimal]
 USDTPerpPremiumIndexPoint = tuple[int, Decimal]
 
@@ -70,7 +75,7 @@ class USDTPerpMarketDataSource(Protocol):
     ) -> Sequence[USDTPerpFundingRatePoint]: ...
 
     # 最新值
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker: ...
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker: ...
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint: ...
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint: ...
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint: ...

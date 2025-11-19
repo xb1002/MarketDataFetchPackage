@@ -15,17 +15,18 @@ symbol = Symbol("BTC", "USDT")
 window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=200)
 
 klines = client.get_price_klines(Exchange.BINANCE, window)
-price_ts, last_price = client.get_latest_price(Exchange.BINANCE, symbol)  # 成交价
-mark_price = client.get_latest_mark_price(Exchange.BINANCE, symbol)  # 标记价格 tuple
+ticker = client.get_latest_price(Exchange.BINANCE, symbol)  # 成交价 dict
+mark_price = client.get_latest_mark_price(Exchange.BINANCE, symbol)  # (timestamp, mark_price)
 
 # K 线返回 List[Tuple]，顺序为 (open_time_ms, open, high, low, close, volume)
 open_time_ms, open_price, *_ = klines[0]
 
 # 其他返回结构：
+# - 最新 ticker: {"timestamp": int, "last_price": Decimal, "bid_price": Decimal, "ask_price": Decimal}
 # - Funding 历史/最新值: (funding_time_ms, funding_rate)
 # - Index price 最新值: (timestamp_ms, index_price)
 # - Premium index 最新值: (timestamp_ms, premium_index_value)
-# - Mark price 快照: (mark_price, index_price, last_funding_rate, next_funding_time_ms)
+# - Mark price 快照: (timestamp_ms, mark_price)
 # - Open interest: (timestamp_ms, value)
 ```
 
@@ -62,7 +63,7 @@ from market_data_fetch import Exchange, MarketDataClient, Symbol
 client = MarketDataClient()
 symbol = Symbol("BTC", "USDT")
 
-mark_price, index_price, funding_rate, next_funding = client.get_latest_mark_price(Exchange.BITGET, symbol)
+mark_timestamp, mark_price = client.get_latest_mark_price(Exchange.BITGET, symbol)
 ```
 
 Bitget 集成现已全面切换到 UTA 的 V3 行情接口：

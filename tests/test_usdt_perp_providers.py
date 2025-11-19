@@ -99,12 +99,15 @@ def test_get_funding_rate_history_live(provider: ProviderContext) -> None:
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_price_live(provider: ProviderContext) -> None:
-    ts, price = _call_or_skip(
+    ticker = _call_or_skip(
         provider, lambda: provider.source.get_latest_price(provider.case.symbol)
     )
 
-    assert isinstance(ts, int)
-    assert isinstance(price, Decimal)
+    assert ticker["timestamp"] > 0
+    assert isinstance(ticker["timestamp"], int)
+    assert isinstance(ticker["last_price"], Decimal)
+    assert isinstance(ticker["bid_price"], Decimal)
+    assert isinstance(ticker["ask_price"], Decimal)
 
 
 @pytest.mark.network
@@ -112,11 +115,9 @@ def test_get_latest_price_live(provider: ProviderContext) -> None:
 def test_get_latest_mark_price_live(provider: ProviderContext) -> None:
     snapshot = _call_or_skip(provider, lambda: provider.source.get_latest_mark_price(provider.case.symbol))
 
-    mark_price, index_price, last_funding_rate, next_funding_ts = snapshot
+    timestamp, mark_price = snapshot
+    assert isinstance(timestamp, int)
     assert isinstance(mark_price, Decimal)
-    assert isinstance(index_price, Decimal)
-    assert isinstance(last_funding_rate, Decimal)
-    assert isinstance(next_funding_ts, int)
 
 
 @pytest.mark.network

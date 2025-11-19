@@ -27,7 +27,7 @@ from ...models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 
 BASE_URL = "https://fapi.binance.com"
@@ -136,18 +136,18 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         payload = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
-        return (int(payload["closeTime"]), Decimal(payload["lastPrice"]))
+        return {
+            "timestamp": int(payload.get("closeTime") or payload.get("time") or 0),
+            "last_price": Decimal(payload.get("lastPrice") or "0"),
+            "bid_price": Decimal(payload.get("bidPrice") or "0"),
+            "ask_price": Decimal(payload.get("askPrice") or "0"),
+        }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         payload = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
-        return (
-            Decimal(payload["markPrice"]),
-            Decimal(payload["indexPrice"]),
-            Decimal(payload["lastFundingRate"]),
-            int(payload["nextFundingTime"]),
-        )
+        return (int(payload.get("time") or 0), Decimal(payload.get("markPrice") or "0"))
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         raw = self._latest_closed_kline(
@@ -169,13 +169,10 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         return self._parse_snapshot_from_kline(raw, endpoint_name="premium index")
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
-        payload = self._request(
-            FUNDING_HISTORY_ENDPOINT,
-            {"symbol": symbol.pair, "limit": 1},
-        )
-        if not payload:
-            raise MarketDataError("Binance returned empty funding rate payload")
-        return self._parse_funding_point(payload[0])
+        payload = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
+        timestamp = int(payload.get("time") or 0)
+        rate = Decimal(payload.get("lastFundingRate") or "0")
+        return (timestamp, rate)
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         payload = self._request(OPEN_INTEREST_ENDPOINT, {"symbol": symbol.pair})

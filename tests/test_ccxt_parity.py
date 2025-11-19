@@ -459,7 +459,6 @@ def test_latest_price_matches_ccxt(parity_provider: CCXTProviderContext) -> None
     latest = _call_provider(
         parity_provider, lambda: parity_provider.source.get_latest_price(parity_provider.case.symbol)
     )
-    assert isinstance(latest, tuple)
     ticker = _call_ccxt(
         parity_provider,
         lambda: parity_provider.ccxt.fetch_ticker(parity_provider.case.ccxt_symbol),
@@ -468,8 +467,14 @@ def test_latest_price_matches_ccxt(parity_provider: CCXTProviderContext) -> None
     ccxt_timestamp = ticker.get("timestamp") or ticker.get("datetime") or ticker.get("closeTime")
     if ccxt_price is None or ccxt_timestamp is None:
         pytest.skip("ccxt ticker missing price or timestamp")
-    ts, price = latest
-    _assert_decimal_close(price, _decimal_from(ccxt_price), context="latest price")
+    ts = latest["timestamp"]
+    _assert_decimal_close(latest["last_price"], _decimal_from(ccxt_price), context="latest price")
+    bid = ticker.get("bid")
+    if bid is not None:
+        _assert_decimal_close(latest["bid_price"], _decimal_from(bid), context="latest bid")
+    ask = ticker.get("ask")
+    if ask is not None:
+        _assert_decimal_close(latest["ask_price"], _decimal_from(ask), context="latest ask")
     assert abs(ts - int(ccxt_timestamp)) <= SNAPSHOT_TIME_TOL_MS
 
 
@@ -527,23 +532,12 @@ def test_latest_mark_price_snapshot_matches_ccxt(parity_provider: CCXTProviderCo
     )
     info = ccxt_snapshot.get("info", {})
     ccxt_mark = ccxt_snapshot.get("last") or info.get("markPrice")
-    ccxt_index = info.get("indexPrice") or ccxt_snapshot.get("indexPrice")
-    ccxt_rate = info.get("lastFundingRate") or ccxt_snapshot.get("lastFundingRate")
-    ccxt_next = info.get("nextFundingTime") or info.get("nextFundingTimestamp") or ccxt_snapshot.get(
-        "nextFundingTimestamp"
-    )
-    if None in (ccxt_mark, ccxt_index, ccxt_rate, ccxt_next):
-        pytest.skip("ccxt mark price snapshot missing fields")
-    _assert_decimal_close(snapshot[0], _decimal_from(ccxt_mark), context="mark price value")
-    _assert_decimal_close(snapshot[1], _decimal_from(ccxt_index), context="mark index price")
-    _assert_decimal_close(
-        snapshot[2],
-        _decimal_from(ccxt_rate),
-        rel=FUNDING_REL_TOL,
-        abs_tol=FUNDING_ABS_TOL,
-        context="mark funding rate",
-    )
-    assert abs(snapshot[3] - int(ccxt_next)) <= 8 * 60 * 60 * 1000
+    ccxt_time = ccxt_snapshot.get("timestamp") or info.get("time") or info.get("timestamp")
+    if None in (ccxt_mark, ccxt_time):
+        pytest.skip("ccxt mark price snapshot missing mark value")
+    ts, mark_price = snapshot
+    _assert_decimal_close(mark_price, _decimal_from(ccxt_mark), context="mark price value")
+    assert abs(ts - int(ccxt_time)) <= SNAPSHOT_TIME_TOL_MS
 
 
 @pytest.mark.network

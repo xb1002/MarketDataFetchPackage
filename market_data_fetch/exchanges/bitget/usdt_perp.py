@@ -21,7 +21,7 @@ from ...models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 
 BASE_URL = "https://api.bitget.com"
@@ -145,17 +145,21 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         ticker, timestamp = self._fetch_ticker(symbol)
-        price = self._to_decimal(ticker.get("lastPrice"))
-        return (timestamp, price)
+        bid = ticker.get("bestBidPrice") or ticker.get("bidPx") or ticker.get("bid1Price")
+        ask = ticker.get("bestAskPrice") or ticker.get("askPx") or ticker.get("ask1Price")
+        return {
+            "timestamp": timestamp,
+            "last_price": self._to_decimal(ticker.get("lastPrice") or ticker.get("lastPr")),
+            "bid_price": self._to_decimal(bid),
+            "ask_price": self._to_decimal(ask),
+        }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
-        ticker, _ = self._fetch_ticker(symbol)
-        mark_price = self._to_decimal(ticker.get("markPrice"))
-        index_price = self._to_decimal(ticker.get("indexPrice"))
-        funding_rate, next_funding = self._fetch_current_funding(symbol)
-        return (mark_price, index_price, funding_rate, next_funding)
+        ticker, timestamp = self._fetch_ticker(symbol)
+        mark_price = self._to_decimal(ticker.get("markPrice") or ticker.get("markPr"))
+        return (timestamp, mark_price)
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         ticker, timestamp = self._fetch_ticker(symbol)
@@ -175,11 +179,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         return self._parse_snapshot_from_kline(entries[0], endpoint_name="premium index")
 
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
-        window = FundingRateWindow(symbol=symbol, limit=1)
-        history = self.get_funding_rate_history(window)
-        if not history:
-            raise MarketDataError("Bitget returned empty funding rate history")
-        return history[0]
+        timestamp, rate = self._fetch_current_funding(symbol)
+        return (timestamp, rate)
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         params = {"category": CATEGORY, "symbol": self._symbol_pair(symbol)}
@@ -286,7 +287,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         timestamp = int(entry.get("ts") or payload.get("requestTime") or 0)
         return entry, timestamp
 
-    def _fetch_current_funding(self, symbol: Symbol) -> tuple[Decimal, int]:
+    def _fetch_current_funding(self, symbol: Symbol) -> tuple[int, Decimal]:
         params = {"symbol": self._symbol_pair(symbol)}
         payload = self._request_wrapped(CURRENT_FUNDING_ENDPOINT, params)
         data = payload.get("data")
@@ -294,8 +295,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             raise MarketDataError("Bitget returned malformed current funding payload")
         entry = data[0]
         rate = self._to_decimal(entry.get("fundingRate"))
-        next_update = int(entry.get("nextUpdate") or 0)
-        return rate, next_update
+        timestamp = int(entry.get("timestamp") or entry.get("fundingTime") or payload.get("requestTime") or 0)
+        return timestamp, rate
 
     def _derive_time_range(self, query: HistoricalWindow, limit: int) -> tuple[int, int]:
         interval_ms = INTERVAL_MILLISECONDS.get(query.interval)

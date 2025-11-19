@@ -14,7 +14,7 @@ from ...models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 
 
@@ -41,11 +41,11 @@ class USDTPerpMarketDataSource(Protocol):
         """Return historical funding rate points for the requested symbol."""
 
     # Latest snapshots --------------------------------------------------
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpPriceTicker:
+    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         """Return the latest traded price snapshot."""
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
-        """Return the latest mark price snapshot containing price and funding details."""
+        """Return the latest mark price snapshot."""
 
     def get_latest_index_price(self, symbol: Symbol) -> USDTPerpIndexPricePoint:
         """Return the latest index price value plus timestamp."""

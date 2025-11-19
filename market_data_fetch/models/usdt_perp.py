@@ -14,14 +14,21 @@ USDTPerpKline: TypeAlias = tuple[int, Decimal, Decimal, Decimal, Decimal, Decima
 # ``(funding_time_ms, funding_rate)``
 USDTPerpFundingRatePoint: TypeAlias = tuple[int, Decimal]
 
-# ``(mark_price, index_price, last_funding_rate, next_funding_time_ms)``
-USDTPerpMarkPrice: TypeAlias = tuple[Decimal, Decimal, Decimal, int]
+# ``(timestamp_ms, mark_price)``
+USDTPerpMarkPrice: TypeAlias = tuple[int, Decimal]
 
 # ``(timestamp_ms, open_interest_value)``
 USDTPerpOpenInterest: TypeAlias = tuple[int, Decimal]
 
-# ``(timestamp_ms, last_price)``
-USDTPerpPriceTicker: TypeAlias = tuple[int, Decimal]
+
+
+class USDTPerpTicker(TypedDict):
+    """Ticker snapshot for USDT perpetual instruments."""
+
+    timestamp: int
+    last_price: Decimal
+    bid_price: Decimal
+    ask_price: Decimal
 
 # ``(timestamp_ms, index_price)``
 USDTPerpIndexPricePoint: TypeAlias = tuple[int, Decimal]

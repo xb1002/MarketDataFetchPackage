@@ -18,7 +18,7 @@ from .models.usdt_perp import (
     USDTPerpMarkPrice,
     USDTPerpOpenInterest,
     USDTPerpPremiumIndexPoint,
-    USDTPerpPriceTicker,
+    USDTPerpTicker,
 )
 
 __all__ = [
@@ -36,7 +36,7 @@ __all__ = [
     "USDTPerpMarkPrice",
     "USDTPerpOpenInterest",
     "USDTPerpPremiumIndexPoint",
-    "USDTPerpPriceTicker",
+    "USDTPerpTicker",
     "register_usdt_perp_source",
     "create_usdt_perp_source",
     "MarketDataError",
