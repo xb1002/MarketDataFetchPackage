@@ -304,6 +304,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         next_time = int(
             entry.get("nextFundingTime")
             or entry.get("nextSettleTime")
+            or entry.get("nextUpdate")
             or entry.get("fundingTime")
             or payload.get("requestTime")
             or 0

@@ -156,3 +156,13 @@ pytest tests/test_ccxt_parity.py -k binance
 ```
 
 若 CCXT 无法访问目标交易所（例如被限流或地理限制），fixture 会自动 `skip`，因此不会影响其它测试结果。
+
+### 手动核对资金费率
+
+若只需快速确认最新资金费率，可运行仓库自带的对照脚本，它会并排打印当前实现与 CCXT `fetchFundingRate` 的结果，便于核查 `funding_rate` 与 `next_funding_time`：
+
+```bash
+python scripts/compare_funding_rates.py
+```
+
+脚本内部使用 [ccxt](https://github.com/ccxt/ccxt) 与 `market_data_fetch` 的各个交易所实现发起实时请求，因此同样需要网络与可选依赖。
