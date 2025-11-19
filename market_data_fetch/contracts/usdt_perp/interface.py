@@ -41,8 +41,8 @@ class USDTPerpMarketDataSource(Protocol):
         """Return historical funding rate points for the requested symbol."""
 
     # Latest snapshots --------------------------------------------------
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
-        """Return the latest traded price snapshot."""
+    def get_latest_ticker(self, symbol: Symbol) -> USDTPerpTicker:
+        """Return the latest ticker snapshot."""
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:
         """Return the latest mark price snapshot."""

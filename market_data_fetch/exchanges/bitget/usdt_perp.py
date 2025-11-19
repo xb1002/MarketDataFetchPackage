@@ -145,7 +145,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
+    def get_latest_ticker(self, symbol: Symbol) -> USDTPerpTicker:
         ticker, timestamp = self._fetch_ticker(symbol)
         return {
             "timestamp": timestamp,

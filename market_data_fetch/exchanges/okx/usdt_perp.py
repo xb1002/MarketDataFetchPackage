@@ -141,7 +141,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
+    def get_latest_ticker(self, symbol: Symbol) -> USDTPerpTicker:
         ticker = self._fetch_ticker(symbol)
         index_ticker = self._fetch_index_ticker(symbol)
         mark_entry = self._fetch_mark_snapshot(symbol)

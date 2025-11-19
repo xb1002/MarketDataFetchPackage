@@ -124,7 +124,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
+    def get_latest_ticker(self, symbol: Symbol) -> USDTPerpTicker:
         ticker, server_time = self._fetch_ticker(symbol)
         timestamp = self._infer_timestamp(ticker, server_time)
         return {

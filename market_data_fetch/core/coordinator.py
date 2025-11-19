@@ -63,10 +63,10 @@ class MarketDataClient:
         return self._get_source(exchange).get_funding_rate_history(query)
 
     # Latest ------------------------------------------------------------
-    def get_latest_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpTicker:
-        """Return the latest traded price snapshot from the underlying source."""
+    def get_latest_ticker(self, exchange: Exchange, symbol: Symbol) -> USDTPerpTicker:
+        """Return the latest ticker snapshot from the underlying source."""
 
-        return self._get_source(exchange).get_latest_price(symbol)
+        return self._get_source(exchange).get_latest_ticker(symbol)
 
     def get_latest_mark_price(self, exchange: Exchange, symbol: Symbol) -> USDTPerpMarkPrice:
         """Return the latest mark price snapshot from the underlying source."""

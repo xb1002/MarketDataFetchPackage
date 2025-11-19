@@ -15,7 +15,7 @@ symbol = Symbol("BTC", "USDT")
 window = HistoricalWindow(symbol=symbol, interval=Interval.MINUTE_1, limit=200)
 
 klines = client.get_price_klines(Exchange.BINANCE, window)
-ticker = client.get_latest_price(Exchange.BINANCE, symbol)  # 成交价 dict
+ticker = client.get_latest_ticker(Exchange.BINANCE, symbol)  # ticker dict
 mark_price = client.get_latest_mark_price(Exchange.BINANCE, symbol)  # (timestamp, mark_price)
 
 # K 线返回 List[Tuple]，顺序为 (open_time_ms, open, high, low, close, volume)

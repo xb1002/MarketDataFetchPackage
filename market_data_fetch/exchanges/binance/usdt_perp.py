@@ -136,7 +136,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
 
     # ------------------------------------------------------------------
     # Latest snapshots
-    def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
+    def get_latest_ticker(self, symbol: Symbol) -> USDTPerpTicker:
         ticker = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
         premium = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
         timestamp = int(

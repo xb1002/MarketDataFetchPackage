@@ -455,9 +455,9 @@ def test_funding_history_matches_ccxt(parity_provider: CCXTProviderContext) -> N
 
 @pytest.mark.network
 @pytest.mark.integration
-def test_latest_price_matches_ccxt(parity_provider: CCXTProviderContext) -> None:
+def test_latest_ticker_matches_ccxt(parity_provider: CCXTProviderContext) -> None:
     latest = _call_provider(
-        parity_provider, lambda: parity_provider.source.get_latest_price(parity_provider.case.symbol)
+        parity_provider, lambda: parity_provider.source.get_latest_ticker(parity_provider.case.symbol)
     )
     ticker = _call_ccxt(
         parity_provider,

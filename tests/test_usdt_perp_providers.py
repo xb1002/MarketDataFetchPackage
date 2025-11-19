@@ -98,9 +98,9 @@ def test_get_funding_rate_history_live(provider: ProviderContext) -> None:
 
 @pytest.mark.network
 @pytest.mark.integration
-def test_get_latest_price_live(provider: ProviderContext) -> None:
+def test_get_latest_ticker_live(provider: ProviderContext) -> None:
     ticker = _call_or_skip(
-        provider, lambda: provider.source.get_latest_price(provider.case.symbol)
+        provider, lambda: provider.source.get_latest_ticker(provider.case.symbol)
     )
 
     assert ticker["timestamp"] > 0
