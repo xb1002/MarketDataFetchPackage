@@ -30,6 +30,7 @@ FUNDING_ABS_TOL = Decimal("5e-6")
 OPEN_INTEREST_REL_TOL = Decimal("5e-2")
 SNAPSHOT_TIME_TOL_MS = 120_000
 OPEN_INTEREST_TIME_TOL_MS = 600_000
+FUNDING_NEXT_TIME_TOL_MS = 600_000
 
 
 @dataclass(slots=True)
@@ -138,6 +139,13 @@ def _decimal_from(value: Any) -> Decimal:
     if value is None:
         return Decimal("0")
     return Decimal(str(value))
+
+
+def _first_not_none(*values: Any) -> Any:
+    for entry in values:
+        if entry not in (None, ""):
+            return entry
+    return None
 
 
 def _assert_decimal_close(
@@ -553,31 +561,49 @@ def test_latest_mark_price_snapshot_matches_ccxt(parity_provider: CCXTProviderCo
 @pytest.mark.network
 @pytest.mark.integration
 def test_latest_funding_rate_matches_ccxt(parity_provider: CCXTProviderContext) -> None:
+    if not hasattr(parity_provider.ccxt, "fetchFundingRate"):
+        pytest.skip("ccxt exchange lacks fetchFundingRate")
     latest = _call_provider(
         parity_provider,
         lambda: parity_provider.source.get_latest_funding_rate(parity_provider.case.symbol),
     )
     params = parity_provider.case.params_for("funding")
-    ccxt_history = _call_ccxt(
-        parity_provider,
-        lambda: parity_provider.ccxt.fetchFundingRateHistory(
-            parity_provider.case.ccxt_symbol,
-            limit=1,
-            params=params,
-        ),
+    try:
+        ccxt_snapshot = _call_ccxt(
+            parity_provider,
+            lambda: parity_provider.ccxt.fetchFundingRate(
+                parity_provider.case.ccxt_symbol, params=params
+            ),
+        )
+    except AttributeError:  # pragma: no cover - depends on ccxt version
+        pytest.skip("ccxt exchange lacks fetchFundingRate")
+    info = ccxt_snapshot.get("info", {}) if isinstance(ccxt_snapshot, dict) else {}
+    ccxt_rate = _first_not_none(
+        ccxt_snapshot.get("fundingRate") if isinstance(ccxt_snapshot, dict) else None,
+        info.get("fundingRate"),
+        info.get("estFundingRate"),
+        info.get("lastFundingRate"),
+        info.get("nextFundingRate"),
     )
-    ccxt_points = _convert_ccxt_funding(ccxt_history)
-    if not ccxt_points:
-        pytest.skip("ccxt returned empty funding point")
-    ccxt_point = ccxt_points[-1]
-    assert abs(latest[0] - ccxt_point[0]) <= 8 * 60 * 60 * 1000
+    ccxt_next_time = _first_not_none(
+        ccxt_snapshot.get("nextFundingTime") if isinstance(ccxt_snapshot, dict) else None,
+        ccxt_snapshot.get("nextFundingTimestamp") if isinstance(ccxt_snapshot, dict) else None,
+        info.get("nextFundingTime"),
+        info.get("nextFundingTimestamp"),
+        info.get("nextFundingRateTime"),
+    )
+    if ccxt_rate in (None, "") or ccxt_next_time in (None, ""):
+        pytest.skip("ccxt funding snapshot missing fields")
     _assert_decimal_close(
-        latest[1],
-        ccxt_point[1],
+        latest["funding_rate"],
+        _decimal_from(ccxt_rate),
         rel=FUNDING_REL_TOL,
         abs_tol=FUNDING_ABS_TOL,
         context="latest funding rate",
     )
+    assert (
+        abs(latest["next_funding_time"] - int(ccxt_next_time)) <= FUNDING_NEXT_TIME_TOL_MS
+    ), "next funding timestamps diverged"
 
 
 @pytest.mark.network

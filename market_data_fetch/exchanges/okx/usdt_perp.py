@@ -19,6 +19,7 @@ from ...core.queries import DEFAULT_LIMIT, FundingRateWindow, HistoricalWindow
 from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -175,11 +176,11 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         timestamp, _, _, _, close, _ = self._build_flat_kline(entries[0])
         return (timestamp, close)
 
-    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
+    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRate:
         entry = self._fetch_latest_funding(symbol)
-        timestamp = int(entry.get("fundingTime") or entry.get("ts") or 0)
-        rate = self._to_decimal(entry.get("fundingRate"))
-        return (timestamp, rate)
+        rate = self._to_decimal(entry.get("fundingRate") or entry.get("nextFundingRate"))
+        next_time = int(entry.get("nextFundingTime") or entry.get("fundingTime") or entry.get("ts") or 0)
+        return {"funding_rate": rate, "next_funding_time": next_time}
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         params = {"instId": self._contract_inst_id(symbol)}

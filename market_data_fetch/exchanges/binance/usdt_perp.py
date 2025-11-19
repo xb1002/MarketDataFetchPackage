@@ -20,6 +20,7 @@ from ...core.queries import FundingRateWindow, HistoricalWindow
 from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -175,11 +176,11 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         )
         return self._parse_snapshot_from_kline(raw, endpoint_name="premium index")
 
-    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
+    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRate:
         payload = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
-        timestamp = int(payload.get("time") or 0)
         rate = Decimal(payload.get("lastFundingRate") or "0")
-        return (timestamp, rate)
+        next_time = int(payload.get("nextFundingTime") or 0)
+        return {"funding_rate": rate, "next_funding_time": next_time}
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         payload = self._request(OPEN_INTEREST_ENDPOINT, {"symbol": symbol.pair})

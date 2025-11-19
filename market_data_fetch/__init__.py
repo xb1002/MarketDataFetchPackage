@@ -11,6 +11,7 @@ from .core.queries import FundingRateWindow, HistoricalWindow
 from .core.registry import create_usdt_perp_source, register_usdt_perp_source
 from .models.shared import Exchange, Interval, Symbol
 from .models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -30,6 +31,7 @@ __all__ = [
     "Interval",
     "Symbol",
     "USDTPerpFundingRatePoint",
+    "USDTPerpFundingRate",
     "USDTPerpIndexPricePoint",
     "USDTPerpInstrument",
     "USDTPerpKline",

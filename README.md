@@ -23,7 +23,8 @@ open_time_ms, open_price, *_ = klines[0]
 
 # 其他返回结构：
 # - 最新 ticker: {"timestamp": int, "last_price": Decimal, "index_price": Decimal, "mark_price": Decimal}
-# - Funding 历史/最新值: (funding_time_ms, funding_rate)
+# - Funding 历史值: (funding_time_ms, funding_rate)
+# - 最新 Funding: {"funding_rate": Decimal, "next_funding_time": int}
 # - Index price 最新值: (timestamp_ms, index_price)
 # - Premium index 最新值: (timestamp_ms, premium_index_value)
 # - Mark price 快照: (timestamp_ms, mark_price)
@@ -102,7 +103,7 @@ OKX 集成覆盖以下端点：
 
 - `/api/v5/market/candles`、`/api/v5/market/index-candles`、`/api/v5/market/mark-price-candles` 下载价格/指数/标记价 K 线（官方最大 limit 分别为 300/100/100 条）。
 - `/api/v5/public/premium-history` 返回溢价指数离散点，代码会将每条记录转换成 `USDTPerpKline` 并让 OHLC 值完全一致、成交量固定为 0，以满足统一的接口契约。
-- `/api/v5/public/funding-rate-history` 与 `/api/v5/public/funding-rate` 提供资金费率历史与最新值。
+- `/api/v5/public/funding-rate-history` 与 `/api/v5/public/funding-rate` 提供资金费率历史与最新值（最新接口返回 `{funding_rate, next_funding_time}`）。
 - `/api/v5/market/tickers`、`/api/v5/market/index-tickers`、`/api/v5/public/mark-price`、`/api/v5/public/open-interest`、`/api/v5/public/instruments` 分别用于最新成交价、指数价、标记价、未平仓量与合约信息。
 
 即便 OKX 官方没有直接提供溢价指数 K 线，也能通过 `premium-history` 合成出符合 tuple 契约的结果，其余接口行为与 Binance/Bybit/Bitget 保持一致。

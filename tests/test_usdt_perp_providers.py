@@ -145,10 +145,12 @@ def test_get_latest_premium_index_live(provider: ProviderContext) -> None:
 @pytest.mark.network
 @pytest.mark.integration
 def test_get_latest_funding_rate_point_live(provider: ProviderContext) -> None:
-    point = _call_or_skip(provider, lambda: provider.source.get_latest_funding_rate(provider.case.symbol))
+    snapshot = _call_or_skip(
+        provider, lambda: provider.source.get_latest_funding_rate(provider.case.symbol)
+    )
 
-    assert isinstance(point[0], int)
-    assert isinstance(point[1], Decimal)
+    assert isinstance(snapshot["next_funding_time"], int)
+    assert isinstance(snapshot["funding_rate"], Decimal)
 
 
 @pytest.mark.network

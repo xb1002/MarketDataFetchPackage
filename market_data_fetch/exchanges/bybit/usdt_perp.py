@@ -14,6 +14,7 @@ from ...core.queries import FundingRateWindow, HistoricalWindow
 from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -162,11 +163,11 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         # the corresponding timestamp.
         return (latest[0], latest[4])
 
-    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
+    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRate:
         ticker, server_time = self._fetch_ticker(symbol)
-        timestamp = self._infer_timestamp(ticker, server_time)
         rate = self._to_decimal(ticker.get("fundingRate"))
-        return (timestamp, rate)
+        next_time = int(ticker.get("nextFundingTime") or server_time)
+        return {"funding_rate": rate, "next_funding_time": next_time}
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         # Bybit's dedicated open-interest endpoint can trail the latest ticker

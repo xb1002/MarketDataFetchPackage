@@ -2,6 +2,7 @@
 
 from .shared import Exchange, Interval, Symbol
 from .usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -17,6 +18,7 @@ __all__ = [
     "Interval",
     "Symbol",
     "USDTPerpFundingRatePoint",
+    "USDTPerpFundingRate",
     "USDTPerpIndexPricePoint",
     "USDTPerpInstrument",
     "USDTPerpKline",

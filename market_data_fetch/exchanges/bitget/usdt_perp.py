@@ -14,6 +14,7 @@ from ...core.queries import DEFAULT_LIMIT, FundingRateWindow, HistoricalWindow
 from ...core.registry import register_usdt_perp_source
 from ...models.shared import Exchange, Interval, Symbol
 from ...models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -180,9 +181,12 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             raise MarketDataError("Bitget returned empty premium index klines payload")
         return self._parse_snapshot_from_kline(entries[0], endpoint_name="premium index")
 
-    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
-        timestamp, rate = self._fetch_current_funding(symbol)
-        return (timestamp, rate)
+    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRate:
+        snapshot = self._fetch_current_funding(symbol)
+        return {
+            "funding_rate": snapshot["funding_rate"],
+            "next_funding_time": snapshot["next_funding_time"],
+        }
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
         params = {"category": CATEGORY, "symbol": self._symbol_pair(symbol)}
@@ -289,7 +293,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         timestamp = int(entry.get("ts") or payload.get("requestTime") or 0)
         return entry, timestamp
 
-    def _fetch_current_funding(self, symbol: Symbol) -> tuple[int, Decimal]:
+    def _fetch_current_funding(self, symbol: Symbol) -> USDTPerpFundingRate:
         params = {"symbol": self._symbol_pair(symbol)}
         payload = self._request_wrapped(CURRENT_FUNDING_ENDPOINT, params)
         data = payload.get("data")
@@ -297,8 +301,14 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             raise MarketDataError("Bitget returned malformed current funding payload")
         entry = data[0]
         rate = self._to_decimal(entry.get("fundingRate"))
-        timestamp = int(entry.get("timestamp") or entry.get("fundingTime") or payload.get("requestTime") or 0)
-        return timestamp, rate
+        next_time = int(
+            entry.get("nextFundingTime")
+            or entry.get("nextSettleTime")
+            or entry.get("fundingTime")
+            or payload.get("requestTime")
+            or 0
+        )
+        return {"funding_rate": rate, "next_funding_time": next_time}
 
     def _derive_time_range(self, query: HistoricalWindow, limit: int) -> tuple[int, int]:
         interval_ms = INTERVAL_MILLISECONDS.get(query.interval)

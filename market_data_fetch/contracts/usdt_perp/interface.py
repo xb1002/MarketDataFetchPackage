@@ -7,6 +7,7 @@ from typing import ClassVar, Protocol, Sequence, runtime_checkable
 from ...core.queries import FundingRateWindow, HistoricalWindow
 from ...models.shared import Exchange, Symbol
 from ...models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -53,7 +54,7 @@ class USDTPerpMarketDataSource(Protocol):
     def get_latest_premium_index(self, symbol: Symbol) -> USDTPerpPremiumIndexPoint:
         """Return the latest premium index value plus timestamp."""
 
-    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRatePoint:
+    def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRate:
         """Return the latest funding rate measurement."""
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:

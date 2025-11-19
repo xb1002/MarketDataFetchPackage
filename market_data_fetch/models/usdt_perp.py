@@ -14,6 +14,13 @@ USDTPerpKline: TypeAlias = tuple[int, Decimal, Decimal, Decimal, Decimal, Decima
 # ``(funding_time_ms, funding_rate)``
 USDTPerpFundingRatePoint: TypeAlias = tuple[int, Decimal]
 
+
+class USDTPerpFundingRate(TypedDict):
+    """Real-time funding rate snapshot plus next settlement timestamp."""
+
+    funding_rate: Decimal
+    next_funding_time: int
+
 # ``(timestamp_ms, mark_price)``
 USDTPerpMarkPrice: TypeAlias = tuple[int, Decimal]
 

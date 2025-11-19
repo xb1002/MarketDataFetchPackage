@@ -7,6 +7,7 @@ from collections.abc import Callable, Mapping, Sequence
 from ..contracts.usdt_perp.interface import USDTPerpMarketDataSource
 from ..models.shared import Exchange, Symbol
 from ..models.usdt_perp import (
+    USDTPerpFundingRate,
     USDTPerpFundingRatePoint,
     USDTPerpIndexPricePoint,
     USDTPerpInstrument,
@@ -85,7 +86,7 @@ class MarketDataClient:
 
         return self._get_source(exchange).get_latest_premium_index(symbol)
 
-    def get_latest_funding_rate(self, exchange: Exchange, symbol: Symbol) -> USDTPerpFundingRatePoint:
+    def get_latest_funding_rate(self, exchange: Exchange, symbol: Symbol) -> USDTPerpFundingRate:
         """Return the latest funding rate measurement."""
 
         return self._get_source(exchange).get_latest_funding_rate(symbol)
