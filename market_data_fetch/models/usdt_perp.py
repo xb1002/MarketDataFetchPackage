@@ -23,12 +23,12 @@ USDTPerpOpenInterest: TypeAlias = tuple[int, Decimal]
 
 
 class USDTPerpTicker(TypedDict):
-    """Ticker snapshot for USDT perpetual instruments."""
+    """Ticker snapshot bundling traded, index, and mark prices."""
 
     timestamp: int
     last_price: Decimal
-    bid_price: Decimal
-    ask_price: Decimal
+    index_price: Decimal
+    mark_price: Decimal
 
 # ``(timestamp_ms, index_price)``
 USDTPerpIndexPricePoint: TypeAlias = tuple[int, Decimal]

@@ -32,8 +32,8 @@ USDTPerpOpenInterest = tuple[int, Decimal]
 class USDTPerpTicker(TypedDict):
     timestamp: int
     last_price: Decimal
-    bid_price: Decimal
-    ask_price: Decimal
+    index_price: Decimal
+    mark_price: Decimal
 USDTPerpIndexPricePoint = tuple[int, Decimal]
 USDTPerpPremiumIndexPoint = tuple[int, Decimal]
 

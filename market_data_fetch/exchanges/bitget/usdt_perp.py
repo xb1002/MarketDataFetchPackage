@@ -147,13 +147,15 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
     # Latest snapshots
     def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         ticker, timestamp = self._fetch_ticker(symbol)
-        bid = ticker.get("bestBidPrice") or ticker.get("bidPx") or ticker.get("bid1Price")
-        ask = ticker.get("bestAskPrice") or ticker.get("askPx") or ticker.get("ask1Price")
         return {
             "timestamp": timestamp,
             "last_price": self._to_decimal(ticker.get("lastPrice") or ticker.get("lastPr")),
-            "bid_price": self._to_decimal(bid),
-            "ask_price": self._to_decimal(ask),
+            "index_price": self._to_decimal(
+                ticker.get("indexPrice") or ticker.get("indexPr") or ticker.get("indexPx")
+            ),
+            "mark_price": self._to_decimal(
+                ticker.get("markPrice") or ticker.get("markPr") or ticker.get("markPx")
+            ),
         }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:

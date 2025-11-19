@@ -137,12 +137,19 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
     # ------------------------------------------------------------------
     # Latest snapshots
     def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
-        payload = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
+        ticker = self._request(TICKER_24H_ENDPOINT, {"symbol": symbol.pair})
+        premium = self._request(PREMIUM_INDEX_ENDPOINT, {"symbol": symbol.pair})
+        timestamp = int(
+            ticker.get("closeTime")
+            or ticker.get("time")
+            or premium.get("time")
+            or int(time.time() * 1000)
+        )
         return {
-            "timestamp": int(payload.get("closeTime") or payload.get("time") or 0),
-            "last_price": Decimal(payload.get("lastPrice") or "0"),
-            "bid_price": Decimal(payload.get("bidPrice") or "0"),
-            "ask_price": Decimal(payload.get("askPrice") or "0"),
+            "timestamp": timestamp,
+            "last_price": Decimal(ticker.get("lastPrice") or "0"),
+            "index_price": Decimal(premium.get("indexPrice") or "0"),
+            "mark_price": Decimal(premium.get("markPrice") or "0"),
         }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:

@@ -143,12 +143,14 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
     # Latest snapshots
     def get_latest_price(self, symbol: Symbol) -> USDTPerpTicker:
         ticker = self._fetch_ticker(symbol)
-        timestamp = int(ticker.get("ts") or 0)
+        index_ticker = self._fetch_index_ticker(symbol)
+        mark_entry = self._fetch_mark_snapshot(symbol)
+        timestamp = int(ticker.get("ts") or index_ticker.get("ts") or mark_entry.get("ts") or 0)
         return {
             "timestamp": timestamp,
             "last_price": self._to_decimal(ticker.get("last")),
-            "bid_price": self._to_decimal(ticker.get("bidPx")),
-            "ask_price": self._to_decimal(ticker.get("askPx")),
+            "index_price": self._to_decimal(index_ticker.get("idxPx")),
+            "mark_price": self._to_decimal(mark_entry.get("markPx")),
         }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:

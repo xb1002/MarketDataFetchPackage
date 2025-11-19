@@ -22,7 +22,7 @@ mark_price = client.get_latest_mark_price(Exchange.BINANCE, symbol)  # (timestam
 open_time_ms, open_price, *_ = klines[0]
 
 # 其他返回结构：
-# - 最新 ticker: {"timestamp": int, "last_price": Decimal, "bid_price": Decimal, "ask_price": Decimal}
+# - 最新 ticker: {"timestamp": int, "last_price": Decimal, "index_price": Decimal, "mark_price": Decimal}
 # - Funding 历史/最新值: (funding_time_ms, funding_rate)
 # - Index price 最新值: (timestamp_ms, index_price)
 # - Premium index 最新值: (timestamp_ms, premium_index_value)

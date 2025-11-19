@@ -106,8 +106,8 @@ def test_get_latest_price_live(provider: ProviderContext) -> None:
     assert ticker["timestamp"] > 0
     assert isinstance(ticker["timestamp"], int)
     assert isinstance(ticker["last_price"], Decimal)
-    assert isinstance(ticker["bid_price"], Decimal)
-    assert isinstance(ticker["ask_price"], Decimal)
+    assert isinstance(ticker["index_price"], Decimal)
+    assert isinstance(ticker["mark_price"], Decimal)
 
 
 @pytest.mark.network

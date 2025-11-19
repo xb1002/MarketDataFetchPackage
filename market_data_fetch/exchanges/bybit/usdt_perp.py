@@ -130,8 +130,8 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         return {
             "timestamp": timestamp,
             "last_price": self._to_decimal(ticker.get("lastPrice")),
-            "bid_price": self._to_decimal(ticker.get("bid1Price")),
-            "ask_price": self._to_decimal(ticker.get("ask1Price")),
+            "index_price": self._to_decimal(ticker.get("indexPrice")),
+            "mark_price": self._to_decimal(ticker.get("markPrice")),
         }
 
     def get_latest_mark_price(self, symbol: Symbol) -> USDTPerpMarkPrice:

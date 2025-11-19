@@ -469,12 +469,22 @@ def test_latest_price_matches_ccxt(parity_provider: CCXTProviderContext) -> None
         pytest.skip("ccxt ticker missing price or timestamp")
     ts = latest["timestamp"]
     _assert_decimal_close(latest["last_price"], _decimal_from(ccxt_price), context="latest price")
-    bid = ticker.get("bid")
-    if bid is not None:
-        _assert_decimal_close(latest["bid_price"], _decimal_from(bid), context="latest bid")
-    ask = ticker.get("ask")
-    if ask is not None:
-        _assert_decimal_close(latest["ask_price"], _decimal_from(ask), context="latest ask")
+    index_snapshot = _call_provider(
+        parity_provider, lambda: parity_provider.source.get_latest_index_price(parity_provider.case.symbol)
+    )
+    _assert_decimal_close(
+        latest["index_price"],
+        index_snapshot[1],
+        context=f"{parity_provider.case.name} ticker index parity",
+    )
+    mark_snapshot = _call_provider(
+        parity_provider, lambda: parity_provider.source.get_latest_mark_price(parity_provider.case.symbol)
+    )
+    _assert_decimal_close(
+        latest["mark_price"],
+        mark_snapshot[1],
+        context=f"{parity_provider.case.name} ticker mark parity",
+    )
     assert abs(ts - int(ccxt_timestamp)) <= SNAPSHOT_TIME_TOL_MS
 
 
