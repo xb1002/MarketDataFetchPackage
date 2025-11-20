@@ -225,13 +225,16 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         kline_type: str | None = None,
         limit_override: int | None = None,
     ) -> Sequence[Sequence[Any]]:
+        limit = limit_override or self._enforce_limit(
+            query.limit, KLINE_MAX_LIMIT, endpoint_name=endpoint_name
+        )
         params = self._historical_params(
             query,
             endpoint_name=endpoint_name,
             kline_type=kline_type,
-            limit_override=limit_override,
+            limit=limit,
         )
-        endpoint = self._kline_endpoint(query, limit_override)
+        endpoint = self._kline_endpoint(query, limit)
         payload = self._request_wrapped(endpoint, params)
         data = payload.get("data")
         if not isinstance(data, Sequence) or not data:
@@ -261,10 +264,9 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         *,
         endpoint_name: str,
         kline_type: str | None,
-        limit_override: int | None = None,
+        limit: int,
     ) -> dict[str, Any]:
         interval = self._map_interval(query.interval)
-        limit = limit_override or self._enforce_limit(query.limit, KLINE_MAX_LIMIT, endpoint_name=endpoint_name)
         params: dict[str, Any] = {
             "category": CATEGORY,
             "symbol": self._symbol_pair(query.symbol),
@@ -279,20 +281,33 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             params["type"] = kline_type
         return params
 
-    def _kline_endpoint(self, query: HistoricalWindow, limit_override: int | None) -> str:
-        """Choose between history and recent candles to avoid shifted timestamps.
+    def _kline_endpoint(self, query: HistoricalWindow, limit: int) -> str:
+        """Choose the correct Bitget kline endpoint based on requested window.
 
-        Bitget's `/history-candles` only returns fully closed bars and can appear
-        shifted by one minute when callers request the latest full window. When the
-        caller asks for the maximum window with no explicit time bounds (i.e., the
-        most recent N candles), use `/candles` instead to align with exchange
-        expectations. Otherwise fall back to the history endpoint so time filters
-        work as documented.
+        - When callers do **not** supply explicit bounds, always use `/api/v3/market/candles`.
+        - When callers supply start/end timestamps and the requested window sits
+          entirely inside the latest 100 bars (``[now - interval * 100, now]``),
+          also use `/candles` so the exchange returns the freshest series.
+        - Otherwise fall back to `/history-candles` for older ranges where the
+          candles endpoint may not paginate reliably.
         """
 
-        limit = limit_override or query.limit
-        if not query.start_time and not query.end_time and limit == KLINE_MAX_LIMIT:
+        # Case (a): no explicit time bounds -> use recent candles endpoint
+        if not query.start_time and not query.end_time:
             return CANDLES_ENDPOINT
+
+        # Case (b): bounded query within latest 100 bars -> prefer candles
+        interval_ms = INTERVAL_MILLISECONDS.get(query.interval)
+        if interval_ms is None:
+            raise IntervalNotSupportedError(f"Interval {query.interval} is not supported by Bitget")
+
+        now_ms = _now_ms()
+        recent_lower = now_ms - interval_ms * KLINE_MAX_LIMIT
+        start_ms, end_ms = self._derive_time_range(query, limit)
+
+        if start_ms >= recent_lower and end_ms <= now_ms:
+            return CANDLES_ENDPOINT
+
         return HISTORY_CANDLES_ENDPOINT
 
     def _funding_params(self, query: FundingRateWindow) -> dict[str, Any]:
