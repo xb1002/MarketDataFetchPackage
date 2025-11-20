@@ -369,6 +369,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         base_coin = str(raw.get("baseCoin") or "")
         quote_coin = str(raw.get("quoteCoin") or "")
         status = str(raw.get("status") or "")
+        is_active = status.lower() == "online"
         tick_size = self._derive_precision(raw.get("priceMultiplier"), raw.get("pricePrecision"))
         step_size = self._derive_precision(raw.get("quantityMultiplier"), raw.get("quantityPrecision"))
         min_qty = self._to_decimal(raw.get("minOrderQty"))
@@ -381,7 +382,7 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             "step_size": step_size,
             "min_qty": min_qty,
             "max_qty": max_qty,
-            "status": status,
+            "status": is_active,
         }
 
     def _derive_precision(self, multiplier: Any, precision: Any) -> Decimal:

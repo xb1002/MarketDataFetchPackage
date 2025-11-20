@@ -192,7 +192,10 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         entries = self._extract_sequence(payload, endpoint_name="open interest")
         entry = entries[0]
         timestamp = int(entry.get("ts") or 0)
-        value = self._to_decimal(entry.get("oiUsd") or entry.get("oi"))
+        value_raw = entry.get("oiCcy")
+        if value_raw in (None, ""):
+            raise MarketDataError("OKX open interest payload missing oiCcy value")
+        value = self._to_decimal(value_raw)
         return (timestamp, value)
 
     def get_instruments(self) -> Sequence[USDTPerpInstrument]:
@@ -325,6 +328,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
         max_qty = self._to_decimal(raw.get("maxLmtSz") or raw.get("maxMktSz") or "0")
         symbol = f"{base}{quote or 'USDT'}"
         status = str(raw.get("state") or "")
+        is_active = status.lower() == "live"
         return {
             "symbol": symbol,
             "base_asset": base,
@@ -333,7 +337,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
             "step_size": step_size,
             "min_qty": min_qty,
             "max_qty": max_qty,
-            "status": status,
+            "status": is_active,
         }
 
     def _extract_sequence(self, payload: dict[str, Any], *, endpoint_name: str) -> Sequence[Any]:

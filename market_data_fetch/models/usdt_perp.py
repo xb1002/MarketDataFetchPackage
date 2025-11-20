@@ -55,4 +55,4 @@ class USDTPerpInstrument(TypedDict):
     step_size: Decimal
     min_qty: Decimal
     max_qty: Decimal
-    status: str
+    status: bool

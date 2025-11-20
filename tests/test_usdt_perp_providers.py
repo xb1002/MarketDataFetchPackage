@@ -198,7 +198,7 @@ def test_get_instruments(provider: ProviderContext) -> None:
     assert isinstance(match["step_size"], Decimal)
     assert isinstance(match["min_qty"], Decimal)
     assert isinstance(match["max_qty"], Decimal)
-    assert isinstance(match["status"], str)
+    assert isinstance(match["status"], bool)
 
 
 def test_price_kline_limit_validation(provider: ProviderContext) -> None:

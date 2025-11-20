@@ -131,7 +131,7 @@ tick_size = instrument["tick_size"]
 - `tick_size`：价格精度（最小价格变动）。
 - `step_size`：数量精度（下单步长）。
 - `min_qty`/`max_qty`：合约允许的下单数量区间。
-- `status`：交易所原始状态字符串（如 `TRADING`、`online` 等）。
+- `status`：是否可交易（`True` 表示可下单）。
 
 ## CCXT 数据正确性校验
 

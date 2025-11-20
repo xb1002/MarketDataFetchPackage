@@ -296,6 +296,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
         base_coin = str(raw.get("baseCoin") or "")
         quote_coin = str(raw.get("quoteCoin") or "")
         status = str(raw.get("status") or "")
+        is_active = status.lower() == "trading"
         price_filter = raw.get("priceFilter") or {}
         lot_filter = raw.get("lotSizeFilter") or {}
         tick_size = self._to_decimal(price_filter.get("tickSize"))
@@ -310,7 +311,7 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
             "step_size": step_size,
             "min_qty": min_qty,
             "max_qty": max_qty,
-            "status": status,
+            "status": is_active,
         }
 
     def _infer_timestamp(self, ticker: dict[str, Any], server_time: int) -> int:

@@ -344,6 +344,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
         base_asset = str(raw.get("baseAsset") or "")
         quote_asset = str(raw.get("quoteAsset") or "")
         status = str(raw.get("status") or "")
+        is_active = status.upper() == "TRADING"
         price_filter = self._find_filter(raw, "PRICE_FILTER")
         lot_filter = self._find_filter(raw, "LOT_SIZE")
         tick_size = Decimal(price_filter.get("tickSize", "0"))
@@ -358,7 +359,7 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
             "step_size": step_size,
             "min_qty": min_qty,
             "max_qty": max_qty,
-            "status": status,
+            "status": is_active,
         }
 
     def _find_filter(self, raw: dict[str, Any], filter_type: str) -> dict[str, Any]:
