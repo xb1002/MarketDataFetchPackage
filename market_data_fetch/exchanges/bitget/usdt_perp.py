@@ -285,9 +285,9 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         """Choose the correct Bitget kline endpoint based on requested window.
 
         - When callers do **not** supply explicit bounds, always use `/api/v3/market/candles`.
-        - When callers supply start/end timestamps and the requested window sits
-          entirely inside the latest 100 bars (``[now - interval * 100, now]``),
-          also use `/candles` so the exchange returns the freshest series.
+        - When callers supply start/end timestamps and at least one bound falls
+          inside the latest 100 bars (``[now - interval * 100, now]``), also use
+          `/candles` so the exchange returns the freshest series.
         - Otherwise fall back to `/history-candles` for older ranges where the
           candles endpoint may not paginate reliably.
         """
@@ -305,7 +305,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         recent_lower = now_ms - interval_ms * KLINE_MAX_LIMIT
         start_ms, end_ms = self._derive_time_range(query, limit)
 
-        if start_ms >= recent_lower and end_ms <= now_ms:
+        bound_in_recent = (recent_lower <= start_ms <= now_ms) or (recent_lower <= end_ms <= now_ms)
+        if bound_in_recent:
             return CANDLES_ENDPOINT
 
         return HISTORY_CANDLES_ENDPOINT
