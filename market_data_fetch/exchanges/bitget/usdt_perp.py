@@ -27,6 +27,7 @@ from ...models.usdt_perp import (
 
 BASE_URL = "https://api.bitget.com"
 HISTORY_CANDLES_ENDPOINT = "/api/v3/market/history-candles"
+CANDLES_ENDPOINT = "/api/v3/market/candles"
 FUNDING_HISTORY_ENDPOINT = "/api/v3/market/history-fund-rate"
 CURRENT_FUNDING_ENDPOINT = "/api/v3/market/current-fund-rate"
 TICKER_ENDPOINT = "/api/v3/market/tickers"
@@ -230,7 +231,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             kline_type=kline_type,
             limit_override=limit_override,
         )
-        payload = self._request_wrapped(HISTORY_CANDLES_ENDPOINT, params)
+        endpoint = self._kline_endpoint(query, limit_override)
+        payload = self._request_wrapped(endpoint, params)
         data = payload.get("data")
         if not isinstance(data, Sequence) or not data:
             raise MarketDataError(f"Bitget returned empty {endpoint_name}")
@@ -276,6 +278,22 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
         if kline_type:
             params["type"] = kline_type
         return params
+
+    def _kline_endpoint(self, query: HistoricalWindow, limit_override: int | None) -> str:
+        """Choose between history and recent candles to avoid shifted timestamps.
+
+        Bitget's `/history-candles` only returns fully closed bars and can appear
+        shifted by one minute when callers request the latest full window. When the
+        caller asks for the maximum window with no explicit time bounds (i.e., the
+        most recent N candles), use `/candles` instead to align with exchange
+        expectations. Otherwise fall back to the history endpoint so time filters
+        work as documented.
+        """
+
+        limit = limit_override or query.limit
+        if not query.start_time and not query.end_time and limit == KLINE_MAX_LIMIT:
+            return CANDLES_ENDPOINT
+        return HISTORY_CANDLES_ENDPOINT
 
     def _funding_params(self, query: FundingRateWindow) -> dict[str, Any]:
         limit = self._enforce_limit(query.limit, FUNDING_MAX_LIMIT, endpoint_name="funding history")
