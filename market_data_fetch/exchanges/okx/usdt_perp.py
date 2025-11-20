@@ -179,7 +179,7 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
     def get_latest_funding_rate(self, symbol: Symbol) -> USDTPerpFundingRate:
         entry = self._fetch_latest_funding(symbol)
         rate = self._to_decimal(entry.get("fundingRate") or entry.get("nextFundingRate"))
-        next_time = int(entry.get("nextFundingTime") or entry.get("fundingTime") or entry.get("ts") or 0)
+        next_time = int(entry.get("fundingTime") or entry.get("nextFundingTime") or entry.get("ts") or 0)
         return {"funding_rate": rate, "next_funding_time": next_time}
 
     def get_open_interest(self, symbol: Symbol) -> USDTPerpOpenInterest:
