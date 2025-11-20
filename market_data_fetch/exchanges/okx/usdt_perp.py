@@ -97,7 +97,8 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
             endpoint_name="price klines",
             max_limit=PRICE_KLINES_MAX_LIMIT,
         )
-        return [self._parse_kline(row) for row in entries]
+        klines = [self._parse_kline(row) for row in entries]
+        return self._sort_klines(klines)
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         entries = self._fetch_candles(
@@ -107,7 +108,8 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
             endpoint_name="index price klines",
             max_limit=INDEX_KLINES_MAX_LIMIT,
         )
-        return [self._parse_kline(row, zero_volume=True) for row in entries]
+        klines = [self._parse_kline(row, zero_volume=True) for row in entries]
+        return self._sort_klines(klines)
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         entries = self._fetch_candles(
@@ -117,14 +119,16 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
             endpoint_name="mark price klines",
             max_limit=MARK_PRICE_KLINES_MAX_LIMIT,
         )
-        return [self._parse_kline(row, zero_volume=True) for row in entries]
+        klines = [self._parse_kline(row, zero_volume=True) for row in entries]
+        return self._sort_klines(klines)
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         entries = self._fetch_premium_history(
             query,
             endpoint_name="premium index history",
         )
-        return [self._build_flat_kline(item) for item in entries]
+        klines = [self._build_flat_kline(item) for item in entries]
+        return self._sort_klines(klines)
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         params = {
@@ -208,6 +212,9 @@ class OkxUSDTPerpDataSource(USDTPerpMarketDataSource):
     def close(self) -> None:
         if self._owns_session:
             self._session.close()
+
+    def _sort_klines(self, klines: Sequence[USDTPerpKline]) -> list[USDTPerpKline]:
+        return sorted(klines, key=lambda entry: entry[0])
 
     def _fetch_candles(
         self,

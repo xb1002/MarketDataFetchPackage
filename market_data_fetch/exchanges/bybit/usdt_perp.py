@@ -86,7 +86,8 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
             max_limit=PRICE_KLINES_MAX_LIMIT,
             endpoint_name="price klines",
         )
-        return [self._parse_kline(entry) for entry in data]
+        klines = [self._parse_kline(entry) for entry in data]
+        return self._sort_klines(klines)
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         data = self._fetch_kline_series(
@@ -95,7 +96,8 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
             max_limit=INDEX_KLINES_MAX_LIMIT,
             endpoint_name="index price klines",
         )
-        return [self._parse_kline(entry) for entry in data]
+        klines = [self._parse_kline(entry) for entry in data]
+        return self._sort_klines(klines)
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         data = self._fetch_kline_series(
@@ -104,7 +106,8 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
             max_limit=MARK_PRICE_KLINES_MAX_LIMIT,
             endpoint_name="mark price klines",
         )
-        return [self._parse_kline(entry) for entry in data]
+        klines = [self._parse_kline(entry) for entry in data]
+        return self._sort_klines(klines)
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         data = self._fetch_kline_series(
@@ -113,7 +116,8 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
             max_limit=PREMIUM_INDEX_KLINES_MAX_LIMIT,
             endpoint_name="premium index klines",
         )
-        return [self._parse_kline(entry) for entry in data]
+        klines = [self._parse_kline(entry) for entry in data]
+        return self._sort_klines(klines)
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         payload = self._request(
@@ -192,6 +196,9 @@ class BybitUSDTPerpDataSource(USDTPerpMarketDataSource):
     def close(self) -> None:
         if self._owns_session:
             self._session.close()
+
+    def _sort_klines(self, klines: Sequence[USDTPerpKline]) -> list[USDTPerpKline]:
+        return sorted(klines, key=lambda entry: entry[0])
 
     def _fetch_kline_series(
         self,

@@ -80,7 +80,8 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="price klines",
             ),
         )
-        return [self._parse_kline(raw) for raw in payload]
+        klines = [self._parse_kline(raw) for raw in payload]
+        return self._sort_klines(klines)
 
     def get_index_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
@@ -92,7 +93,8 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="index price klines",
             ),
         )
-        return [self._parse_kline(raw) for raw in payload]
+        klines = [self._parse_kline(raw) for raw in payload]
+        return self._sort_klines(klines)
 
     def get_premium_index_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
@@ -104,7 +106,8 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="premium index klines",
             ),
         )
-        return [self._parse_kline(raw) for raw in payload]
+        klines = [self._parse_kline(raw) for raw in payload]
+        return self._sort_klines(klines)
 
     def get_mark_price_klines(self, query: HistoricalWindow) -> Sequence[USDTPerpKline]:
         payload = self._request(
@@ -116,7 +119,8 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
                 endpoint_name="mark price klines",
             ),
         )
-        return [self._parse_kline(raw) for raw in payload]
+        klines = [self._parse_kline(raw) for raw in payload]
+        return self._sort_klines(klines)
 
     def get_funding_rate_history(self, query: FundingRateWindow) -> Sequence[USDTPerpFundingRatePoint]:
         limit = self._enforce_limit(
@@ -207,6 +211,9 @@ class BinanceUSDTPerpDataSource(USDTPerpMarketDataSource):
     def close(self) -> None:
         if self._owns_session:
             self._session.close()
+
+    def _sort_klines(self, klines: Sequence[USDTPerpKline]) -> list[USDTPerpKline]:
+        return sorted(klines, key=lambda entry: entry[0])
 
     def _historical_params(
         self,

@@ -79,6 +79,27 @@ def test_get_premium_index_klines_live(provider: ProviderContext) -> None:
 
 @pytest.mark.network
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    "method_name",
+    [
+        "get_price_klines",
+        "get_index_price_klines",
+        "get_mark_price_klines",
+        "get_premium_index_klines",
+    ],
+)
+def test_kline_results_are_sorted(provider: ProviderContext, method_name: str) -> None:
+    window = HistoricalWindow(symbol=provider.case.symbol, interval=Interval.MINUTE_1, limit=5)
+    getter = getattr(provider.source, method_name)
+    klines = _call_or_skip(provider, lambda: getter(window))
+
+    assert len(klines) > 0
+    timestamps = [entry[0] for entry in klines]
+    assert timestamps == sorted(timestamps)
+
+
+@pytest.mark.network
+@pytest.mark.integration
 def test_get_funding_rate_history_live(provider: ProviderContext) -> None:
     end_time = datetime.now(tz=timezone.utc)
     start_time = end_time - timedelta(days=3)
