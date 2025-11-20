@@ -36,10 +36,11 @@ CATEGORY = "USDT-FUTURES"
 DEFAULT_TIMEOUT = 10.0
 KLINE_MAX_LIMIT = 100
 FUNDING_MAX_LIMIT = 200
-KLINE_TYPE_MARKET = "MARKET"
-KLINE_TYPE_MARK = "MARK"
-KLINE_TYPE_INDEX = "INDEX"
-KLINE_TYPE_PREMIUM = "PREMIUM"
+# Bitget docs specify lowercase kline type identifiers; using uppercase leads to empty payloads.
+KLINE_TYPE_MARKET = "market"
+KLINE_TYPE_MARK = "mark"
+KLINE_TYPE_INDEX = "index"
+KLINE_TYPE_PREMIUM = "premium"
 
 INTERVAL_MAP: dict[Interval, str] = {
     Interval.MINUTE_1: "1m",
@@ -248,6 +249,8 @@ class BitgetUSDTPerpDataSource(USDTPerpMarketDataSource):
             if not filtered:
                 raise MarketDataError(f"Bitget returned no {endpoint_name} entries within requested window")
             entries = filtered
+        # Ensure ascending order by open_time so downstream callers receive time-sorted klines
+        entries.sort(key=lambda row: int(row[0]) if row else 0)
         return entries
 
     def _historical_params(
