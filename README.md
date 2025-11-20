@@ -166,3 +166,28 @@ python scripts/compare_funding_rates.py
 ```
 
 脚本内部使用 [ccxt](https://github.com/ccxt/ccxt) 与 `market_data_fetch` 的各个交易所实现发起实时请求，因此同样需要网络与可选依赖。
+
+### 其他接口的人工对照脚本
+
+为了便于人工浏览，你可以针对每个接口运行独立的对比脚本；所有输出的时间戳都会转换为可读的 UTC 时间：
+
+```bash
+# 历史序列
+python scripts/compare_price_klines.py
+python scripts/compare_index_klines.py
+python scripts/compare_mark_klines.py
+python scripts/compare_premium_klines.py
+python scripts/compare_funding_history.py
+
+# 最新快照
+python scripts/compare_latest_ticker.py
+python scripts/compare_latest_index_price.py
+python scripts/compare_latest_mark_price.py
+python scripts/compare_latest_premium_index.py
+python scripts/compare_open_interest.py
+
+# 其他
+python scripts/compare_instruments.py
+```
+
+脚本都接受可选的交易所过滤参数（如 `python scripts/compare_price_klines.py binance okx`），以便快速聚焦某几家交易所。
